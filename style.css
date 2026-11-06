@@ -81,3 +81,5 @@ textarea{width:100%;font:14px/1.4 ui-monospace,Consolas,monospace;padding:.6rem;
 td input[type=number]{width:90px;min-width:0}
 td .row{flex-wrap:nowrap;gap:.4rem}
 @media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.stat b{font-size:1.25rem}.stat{padding:.6rem .7rem}.top,main{padding-left:.9rem;padding-right:.9rem}}
+
+a.brand{color:#fff;text-decoration:none}

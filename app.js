@@ -618,3 +618,5 @@ $("pMonth").value = thisMonth();
 fillSettings();
 showView();
 render();
+// index.html links here with ?demo=1 so visitors can explore without typing anything
+if (new URLSearchParams(location.search).get("demo") === "1" && !state.members.length) $("demoBtn").onclick();

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chama Ledger</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <a class="brand" href="index.html" title="Back to the welcome page"><img src="logo.svg" alt="" width="44" height="44"><span>Chama<br>Ledger</span></a>
+    <nav id="nav">
+      <button data-view="overview">Overview</button>
+      <button data-view="members">Members</button>
+      <button data-view="payments">Payments</button>
+      <button data-view="loans">Loans</button>
+      <button data-view="funds">Funds</button>
+      <button data-view="import">Import</button>
+      <button data-view="settings">Settings</button>
+    </nav>
+  </aside>
+
+  <div class="content">
+    <header class="top">
+      <div><h1 id="pageTitle">Overview</h1><p id="groupName"></p></div>
+      <label>Showing month <input id="viewMonth" type="month"></label>
+    </header>
+
+    <main>
+      <!-- OVERVIEW -->
+      <section class="view" id="view-overview">
+        <div class="stats" id="stats"></div>
+        <div class="grid2">
+          <div class="panel"><h2>Collections, last 6 months</h2><div id="chart"></div></div>
+          <div class="panel"><h2>Paid in the selected month</h2><div id="ring"></div></div>
+        </div>
+        <div class="grid2">
+          <div class="panel"><h2>Biggest arrears</h2><ul class="list" id="topArrears"></ul></div>
+          <div class="panel"><h2>Latest payments</h2><ul class="list" id="recent"></ul></div>
+        </div>
+      </section>
+
+      <!-- MEMBERS -->
+      <section class="view" id="view-members" hidden>
+        <div class="panel">
+          <h2>Add a member</h2>
+          <form id="memberForm" class="row">
+            <label>Name <input id="mName" required></label>
+            <label>Phone (2547XXXXXXXX) <input id="mPhone" inputmode="numeric" pattern="254[0-9]{9}" required></label>
+            <label>Own monthly amount (KES, optional) <input id="mPledge" type="number" min="0"></label>
+            <label>Already paid before (KES, optional) <input id="mOpening" type="number" min="0"></label>
+            <button>Add member</button>
+          </form>
+        </div>
+        <div class="panel">
+          <div class="row">
+            <label>Search <input id="search" placeholder="Type a name"></label>
+            <label>Show
+              <select id="statusFilter">
+                <option value="all">Everyone</option>
+                <option value="paid">Paid this month</option>
+                <option value="unpaid">Not paid this month</option>
+                <option value="arrears">In arrears</option>
+              </select>
+            </label>
+          </div>
+          <div class="scroll">
+            <table>
+              <thead><tr><th>Member</th><th>Selected month</th><th>Total paid</th><th>Arrears</th><th>Fines + welfare due</th></tr></thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+          <p class="hint">Select a member to see their history and send a reminder.</p>
+        </div>
+      </section>
+
+      <!-- PAYMENTS -->
+      <section class="view" id="view-payments" hidden>
+        <div class="panel">
+          <h2>Record a payment</h2>
+          <form id="payForm" class="row">
+            <label>Member <select id="pMember" required></select></label>
+            <label>For month <input id="pMonth" type="month" required></label>
+            <label>Amount (KES) <input id="pAmount" type="number" min="1" required></label>
+            <label>Type <select id="pKind"><option value="contribution">Contribution</option><option value="fine">Late fine</option><option value="welfare">Welfare</option></select></label>
+            <label>Date paid <input id="pDate" type="date" required></label>
+            <label>Paid by <select id="pMethod"><option value="mpesa">M-Pesa</option><option value="cash">Cash</option></select></label>
+            <label>M-Pesa code <input id="pRef" placeholder="e.g. SJK4X9ABCD" required></label>
+            <button>Save payment</button>
+          </form>
+          <p id="msg" role="status"></p>
+        </div>
+        <div class="panel">
+          <div class="row between">
+            <h2>Payment history</h2>
+            <label>Member <select id="fMember"></select></label>
+          </div>
+          <div class="scroll">
+            <table>
+              <thead><tr><th>Date</th><th>Member</th><th>Month</th><th>Amount</th><th>M-Pesa code</th><th>Type and source</th><th></th></tr></thead>
+              <tbody id="history"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+            <!-- LOANS -->
+      <section class="view" id="view-loans" hidden>
+        <div class="panel">
+          <h2>Give a loan</h2>
+          <form id="loanForm" class="row">
+            <label>Member <select id="lMember" required></select></label>
+            <label>Amount (KES) <input id="lAmount" type="number" min="1" required></label>
+            <label>Interest per month (%) <input id="lRate" type="number" min="0" step="0.1" required></label>
+            <label>Months to repay <input id="lMonths" type="number" min="1" required></label>
+            <label>Interest type
+              <select id="lType"><option value="flat">Flat (on the full amount)</option><option value="reducing">Reducing balance</option></select>
+            </label>
+            <label>Date given <input id="lDate" type="date" required></label>
+            <button>Save loan</button>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>Loans</h2>
+          <div class="scroll">
+            <table>
+              <thead><tr><th>Member</th><th>Loan</th><th>Terms</th><th>Monthly</th><th>Repaid</th><th>Balance</th><th>Record repayment</th><th></th></tr></thead>
+              <tbody id="loanRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- FUNDS -->
+      <section class="view" id="view-funds" hidden>
+        <div class="panel">
+          <h2>Merry-go-round order</h2>
+          <p class="hint">One member receives the pot each month, starting from the group's start month.</p>
+          <ul class="list" id="orderList"></ul>
+          <div class="row"><button id="shuffleBtn" class="ghost">Draw a random order</button></div>
+        </div>
+        <div class="panel">
+          <h2>Rounds</h2>
+          <div class="scroll">
+            <table>
+              <thead><tr><th>Month</th><th>Recipient</th><th>Pot</th><th>Status</th></tr></thead>
+              <tbody id="roundRows"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Welfare fund</h2>
+          <div class="stats" id="welfareStats"></div>
+          <form id="welfareForm" class="row">
+            <label>Member helped <select id="wMember" required></select></label>
+            <label>Amount (KES) <input id="wAmount" type="number" min="1" required></label>
+            <label>Reason <input id="wReason" required></label>
+            <button>Record welfare payout</button>
+          </form>
+          <ul class="list" id="welfareList"></ul>
+        </div>
+      </section>
+
+      <!-- IMPORT -->
+      <section class="view" id="view-import" hidden>
+        <div class="panel">
+          <h2>Bring in your existing records</h2>
+          <p class="hint">Most chamas already keep records in WhatsApp, Word or a ledger book. Pick yours. You always get a preview before anything is saved.</p>
+          <div class="tabs" id="importTabs">
+            <button data-tab="chat" class="on">WhatsApp / M-Pesa messages</button>
+            <button data-tab="grid">Word, Excel or ledger table</button>
+          </div>
+        </div>
+        <div class="panel" id="tab-chat">
+          <h2>Paste messages</h2>
+          <p class="hint">Copy payment messages or M-Pesa confirmations from your group chat and paste them here, one message per line.</p>
+          <textarea id="chatText" rows="8" placeholder="SJK4X9ABCD Confirmed. Ksh2,000.00 received from WANJIKU KAMAU 0712000001 on 5/11/26"></textarea>
+          <div class="row"><button id="parseChat">Find payments</button></div>
+        </div>
+        <div class="panel" id="tab-grid" hidden>
+          <h2>Paste a table</h2>
+          <p class="hint">Copy the table from Word or Excel. First row: the months (Jan, Feb or 2026-01). First column: member names. Cells: the amount paid, blank if not paid.</p>
+          <div class="row"><label>Year of those months <input id="gridYear" type="number" min="2000" max="2100"></label></div>
+          <textarea id="gridText" rows="8" placeholder="Name&#9;Jan&#9;Feb&#9;Mar&#10;Wanjiku Kamau&#9;2000&#9;2000&#9;&#10;Otieno Odhiambo&#9;2000&#9;&#9;2000"></textarea>
+          <div class="row"><button id="parseGrid">Read table</button></div>
+        </div>
+        <div class="panel" id="preview" hidden>
+          <h2>Check before saving</h2>
+          <div class="scroll">
+            <table>
+              <thead><tr><th>Use</th><th>Member</th><th>Month</th><th>Amount</th><th>Code</th><th>Note</th></tr></thead>
+              <tbody id="previewRows"></tbody>
+            </table>
+          </div>
+          <div class="row"><button id="commitImport">Save selected payments</button><button id="cancelImport" class="ghost">Cancel</button></div>
+          <p id="importMsg" role="status"></p>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="view" id="view-settings" hidden>
+        <div class="panel">
+          <h2>Group settings</h2>
+          <div class="row">
+            <label>Group name <input id="setName" placeholder="e.g. Donholm Vijana Chama"></label>
+            <label>Monthly contribution (KES) <input id="setAmount" type="number" min="0"></label>
+            <label>Started in <input id="setStart" type="month"></label>
+            <label>Contribution due on day <input id="setDue" type="number" min="1" max="28"></label>
+            <label>Grace days <input id="setGrace" type="number" min="0"></label>
+            <label>Late fine
+              <select id="setFineType">
+                <option value="none">No fines</option>
+                <option value="flat">Flat amount per late payment</option>
+                <option value="daily">Amount per day late</option>
+                <option value="percent">Percent of the contribution</option>
+              </select>
+            </label>
+            <label>Fine amount (KES or %) <input id="setFineValue" type="number" min="0" step="0.1"></label>
+            <label>Welfare per member per month (KES, 0 = off) <input id="setWelfare" type="number" min="0"></label>
+            <button id="saveSettings">Save settings</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Your data</h2>
+          <div class="row">
+            <button id="exportBtn" class="ghost">Download payments (CSV)</button>
+            <button id="demoBtn" class="ghost">Load demo data</button>
+            <button id="resetBtn" class="danger">Erase everything</button>
+          </div>
+          <p class="hint">Data is saved in this browser only. Phase 2 moves it to a shared database.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<dialog id="memberDialog"></dialog>
+<script src="app.js"></script>
+</body>
+</html>

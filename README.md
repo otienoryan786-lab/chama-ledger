@@ -9,12 +9,10 @@
 </p>
 
 <p align="center">
-  <a href="https://YOUR-USERNAME.github.io/chama-ledger/">Live demo</a>
+  <a href="https://otienoryan786-lab.github.io/chama-ledger/">Live demo</a> · <a href="https://otienoryan786-lab.github.io/chama-ledger/app.html?demo=1">Try the app with demo data</a>
 </p>
 
 ![Dashboard screenshot](docs/dashboard.png)
-
-> Replace `YOUR-USERNAME` in the live demo link above once GitHub Pages is on.
 
 ## Screenshots
 
@@ -74,11 +72,11 @@ Chama Ledger replaces the notebook with one record that anyone in the group can 
 No install and no build step. You only need a browser.
 
 1. Download or clone the repository.
-2. Open `index.html`.
-3. Go to **Settings**, then click **Load demo data** to explore, or enter your group's details.
+2. Open `index.html`, the welcome page, and click **Open the app**. You can also open `app.html` directly.
+3. Click **Explore with demo data** to look around, or go to **Settings** and enter your group's details.
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/chama-ledger.git
+git clone https://github.com/otienoryan786-lab/chama-ledger.git
 cd chama-ledger
 # then open index.html in your browser
 ```
@@ -115,8 +113,10 @@ Records imported from a table have no payment date, so they are treated as paid 
 
 ```
 chama-ledger/
-├── index.html   Page layout: dashboard, members, payments, loans, funds, import, settings
-├── style.css    All styling, including the mobile layout
+├── index.html   Welcome page: what Chama Ledger is, who it is for, project status
+├── welcome.css  Styling for the welcome page
+├── app.html     The app: dashboard, members, payments, loans, funds, import, settings
+├── style.css    Styling for the app, including the mobile layout
 ├── app.js       Logic: data, money rules, rendering, import, demo data
 ├── logo.svg     Logo and favicon
 ├── docs/        Screenshots used in this README
@@ -130,6 +130,7 @@ Plain HTML, CSS and JavaScript, with no frameworks or libraries. The charts are 
 - [x] Dashboard, members, payments and CSV export
 - [x] Import from WhatsApp messages and Word or Excel tables
 - [x] Own monthly amounts, late fines, welfare fund, loans and merry-go-round
+- [x] Welcome page that explains the project and links into the app
 - [ ] Fine cap setting
 - [ ] Loan limits and guarantors
 - [ ] Year-end share-out of savings and interest
