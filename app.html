@@ -22,17 +22,36 @@
       <button data-view="import">Import</button>
       <button data-view="settings">Settings</button>
     </nav>
+    <a class="sidefoot" href="index.html">&larr; Welcome page</a>
   </aside>
 
   <div class="content">
+    <div class="demobar" id="demoBar" role="status" hidden>
+      <span><strong>Demo mode.</strong> You are looking at a made-up chama. <span id="demoSafe"></span></span>
+      <button id="exitDemoBar">Exit demo</button>
+    </div>
+
     <header class="top">
       <div><h1 id="pageTitle">Overview</h1><p id="groupName"></p></div>
-      <label>Showing month <input id="viewMonth" type="month"></label>
+      <div class="topctl">
+        <a class="homelink" href="index.html">&larr; Welcome page</a>
+        <button id="demoToggle" class="switch" role="switch" aria-checked="false" title="Fill the app with a made-up chama, or go back to your own data"><span class="knob"></span><span class="swlabel">Demo data</span></button>
+        <label>Showing month <input id="viewMonth" type="month"></label>
+      </div>
     </header>
 
     <main>
       <!-- OVERVIEW -->
       <section class="view" id="view-overview">
+        <div class="panel start" id="emptyStart" hidden>
+          <h2>Welcome. Let's set up your chama.</h2>
+          <p class="hint">Three ways to begin. You can switch demo data on and off at any time without losing anything of your own.</p>
+          <div class="row">
+            <a class="btnlink dark" href="#settings">Set up my group</a>
+            <a class="btnlink dark" href="#import">Import my records</a>
+            <button id="startDemo" class="ghost">Look around with demo data</button>
+          </div>
+        </div>
         <div class="stats" id="stats"></div>
         <div class="grid2">
           <div class="panel"><h2>Collections, last 6 months</h2><div id="chart"></div></div>
@@ -227,11 +246,15 @@
         <div class="panel">
           <h2>Your data</h2>
           <div class="row">
+            <button id="backupBtn" class="ghost">Download full backup (JSON)</button>
+            <button id="restoreBtn" class="ghost">Restore from backup</button>
+            <input id="backupFile" type="file" accept=".json,application/json" hidden>
             <button id="exportBtn" class="ghost">Download payments (CSV)</button>
-            <button id="demoBtn" class="ghost">Load demo data</button>
+            <button id="demoBtn" class="ghost">Turn on demo data</button>
             <button id="resetBtn" class="danger">Erase everything</button>
           </div>
-          <p class="hint">Data is saved in this browser only. Phase 2 moves it to a shared database.</p>
+          <p id="backupMsg" role="status" class="hint">A full JSON backup includes members, settings, payments, loans, welfare and merry-go-round records. Keep it somewhere private. Restore replaces the data in this browser.</p>
+          <p class="hint">Data is saved in this browser only. Turning demo data on never overwrites your own records: they come back when you turn it off.</p>
         </div>
       </section>
     </main>

@@ -1,6 +1,7 @@
 :root{--paper:#eef2f4;--ink:#12263a;--muted:#55687a;--line:#cfd9e0;--accent:#f2a900;--ok:#1f7a4d}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;scroll-padding-top:1rem}
+body{overflow-x:hidden}
 body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.6 "IBM Plex Sans",system-ui,sans-serif}
 h1,h2,h3,.brand{font-family:"Bricolage Grotesque",system-ui,sans-serif}
 a{color:inherit}
@@ -58,12 +59,6 @@ dd{margin:0;color:var(--muted)}
 .phone img{max-width:260px;width:60%;height:auto;border-radius:18px;border:1px solid var(--line);box-shadow:0 14px 40px rgba(18,38,58,.2)}
 .phone figcaption{color:var(--muted);font-size:.9rem;margin-top:.7rem}
 
-.duo{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:2rem}
-.duo ul{margin:0;padding-left:1.1rem;color:var(--muted)}
-.duo li{margin-bottom:.4rem}
-.duo h3{color:var(--ink)}
-.note{margin-top:2rem;background:#fff;border-left:6px solid var(--accent);padding:1rem 1.2rem;color:var(--muted)}
-.note strong{color:var(--ink)}
 
 .cta{background:var(--accent);padding:4rem 1.5rem;text-align:center}
 .cta .btn{background:var(--ink);border-color:var(--ink);color:#fff}
@@ -77,10 +72,50 @@ footer .brand{justify-content:center;color:#fff;margin-bottom:.6rem;font-size:1.
 footer p{margin:.3rem auto;max-width:40em}
 footer a{color:#fff}
 
+.links{flex:1;justify-content:center}
+
+/* gallery */
+.gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.2rem}
+.gallery a{display:block;text-decoration:none;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;transition:transform .15s,box-shadow .15s}
+.gallery a:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(18,38,58,.16)}
+.gallery img{width:100%;height:210px;object-fit:cover;object-position:top;display:block;border-bottom:1px solid var(--line)}
+.gallery span{display:block;padding:.8rem 1rem;font-weight:500}
+.gallery span::after{content:" \2192";color:var(--accent)}
+
+/* why switch */
+.perks{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.2rem}
+.perks article{background:#fff;border:1px solid var(--line);border-radius:6px;padding:1.3rem}
+.perks b{display:block;font:800 2rem/1 "Bricolage Grotesque",system-ui,sans-serif;color:var(--ink);margin-bottom:.8rem;padding-bottom:.6rem;border-bottom:4px solid var(--accent);width:fit-content}
+.perks p{margin:0;color:var(--muted);font-size:.97rem}
+.compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.2rem;margin-top:2.2rem}
+.compare>div{border-radius:6px;padding:1.4rem}
+.compare ul{margin:0;padding:0;list-style:none}
+.compare li{padding:.45rem 0 .45rem 1.7rem;position:relative}
+.before{background:#fff;border:1px dashed #9fb2c2}
+.before li{color:var(--muted)}
+.before li::before{content:"\2715";position:absolute;left:0;color:#b3341f;font-weight:700}
+.after-col{background:var(--ink);color:#fff}
+.after-col h3{color:var(--accent)}
+.after-col li::before{content:"\2713";position:absolute;left:0;color:var(--accent);font-weight:700}
+
+/* faq */
+.faq{max-width:46em;border-top:1px solid #b9c8d4}
+.faq details{border-bottom:1px solid #b9c8d4;padding:1rem 0}
+.faq summary{cursor:pointer;font:600 1.15rem "Bricolage Grotesque",system-ui,sans-serif;list-style:none;display:flex;justify-content:space-between;gap:1rem}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";color:var(--accent);font-size:1.5rem;line-height:1}
+.faq details[open] summary::after{content:"\2212"}
+.faq p{margin:.7rem 0 0;color:var(--muted)}
+.footlinks a{text-decoration:none;border-bottom:1px solid #4d6479}
+
 @media (max-width:860px){
   .hero-grid{grid-template-columns:1fr}
   .ring{display:none}
   .rows>div{grid-template-columns:1fr;gap:.3rem}
-  .links a:not(.btn){display:none}
+  .links{order:3;width:100%;flex:none;justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;gap:1.1rem;padding-bottom:.4rem;white-space:nowrap;-webkit-overflow-scrolling:touch}
+  .topnav{padding:1rem 0 .6rem;gap:.6rem}
+  .topnav .brand{font-size:1.1rem;gap:.5rem}
+  .topnav .brand img{width:32px;height:32px}
+  .topnav .btn.small{padding:.4rem .85rem;font-size:.9rem}
 }
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}

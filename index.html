@@ -10,18 +10,20 @@
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="welcome.css">
 </head>
-<body>
+<body id="top">
   <header class="hero">
     <img class="ring" src="logo.svg" alt="" aria-hidden="true">
-    <nav class="topnav">
+    <nav class="topnav" aria-label="Main">
       <a class="brand" href="index.html"><img src="logo.svg" alt="" width="40" height="40"><span>Chama Ledger</span></a>
       <div class="links">
         <a href="#problem">The problem</a>
         <a href="#features">What it does</a>
         <a href="#how">How it works</a>
-        <a href="#status">Status</a>
-        <a class="btn small" href="app.html">Open the app</a>
+        <a href="#inside">See inside</a>
+        <a href="#why">Why switch</a>
+        <a href="#faq">Questions</a>
       </div>
+      <a class="btn small" href="app.html">Open the app</a>
     </nav>
 
     <div class="hero-grid">
@@ -32,7 +34,7 @@
           <a class="btn" href="app.html">Open the app</a>
           <a class="btn ghost" href="app.html?demo=1">Explore with demo data</a>
         </div>
-        <p class="fine-print">Free to try. Nothing to install. Your data stays on your device.</p>
+        <p class="fine-print">Free to try. Nothing to install. Your data stays on your device. Switch demo data on and off whenever you like.</p>
       </div>
       <figure class="shot">
         <img src="docs/dashboard.png" alt="The Chama Ledger dashboard showing contributions, arrears, a six-month collections chart and the member who takes this month's pot">
@@ -98,38 +100,65 @@
       </div>
     </section>
 
-    <section id="status" class="section">
-      <h2>Where the project stands</h2>
-      <p class="lead">Chama Ledger is an early version, built from conversations with real chamas. It is honest about what it can and cannot do yet.</p>
-      <div class="duo">
-        <div>
-          <h3>Works today</h3>
+    <section id="inside" class="section">
+      <h2>See inside the app</h2>
+      <p class="lead">Real screens, filled with a made-up chama. Click any of them to open the app with the same demo data.</p>
+      <div class="gallery">
+        <a href="app.html?demo=1#members"><img src="docs/members.png" alt="Members list showing who has paid this month and who is in arrears" loading="lazy"><span>Members: who has paid, who is behind</span></a>
+        <a href="app.html?demo=1#loans"><img src="docs/loans.png" alt="Loans with interest, instalments, repayments and balances" loading="lazy"><span>Loans: interest and balances worked out</span></a>
+        <a href="app.html?demo=1#funds"><img src="docs/funds.png" alt="Merry-go-round order, rounds and the welfare fund" loading="lazy"><span>Funds: merry-go-round and welfare</span></a>
+      </div>
+    </section>
+
+    <section id="why" class="section tint">
+      <h2>Why groups switch</h2>
+      <p class="lead">Less arguing, less arithmetic, and a record every member can trust.</p>
+      <div class="perks">
+        <article><b>Proof</b><h3>For every payment, no more arguments</h3><p>Every payment has a name, a month, an amount and a code. A code that was already used is refused.</p></article>
+        <article><b>1 tap</b><h3>To chase a late payer</h3><p>A ready-written WhatsApp reminder opens with the member's balance already filled in.</p></article>
+        <article><b>Paste</b><h3>And your old records are in</h3><p>Paste your WhatsApp payments or your Word table, check the preview, and you are not starting from zero.</p></article>
+        <article><b>Private</b><h3>Your data stays on your device</h3><p>Nothing is sent to a server. Download a full backup to keep a private copy of all your chama records.</p></article>
+      </div>
+
+      <div class="compare">
+        <div class="before">
+          <h3>Month-end with the notebook</h3>
           <ul>
-            <li>Contributions, own amounts, arrears and CSV export</li>
-            <li>Late fines, welfare fund, loans and merry-go-round</li>
-            <li>Import from WhatsApp messages and Word or Excel tables</li>
-            <li>Runs in any browser, including on a phone</li>
+            <li>Scroll the chat to find M-Pesa codes</li>
+            <li>Retype the table, again</li>
+            <li>Work out fines and interest on a calculator</li>
+            <li>Answer "did I pay?" one message at a time</li>
           </ul>
         </div>
-        <div>
-          <h3>Coming next</h3>
+        <div class="after-col">
+          <h3>Month-end with Chama Ledger</h3>
           <ul>
-            <li>A shared database, so the whole group sees one record</li>
-            <li>Logins and roles for treasurer, officials and members</li>
-            <li>M-Pesa STK push for contributions</li>
-            <li>Automatic reminders, a fine cap, loan limits and a year-end share-out</li>
+            <li>Open the dashboard and see who has paid</li>
+            <li>Fines and loan balances are already counted</li>
+            <li>Check any member's full history in one click</li>
+            <li>Send a reminder to whoever is behind</li>
           </ul>
         </div>
       </div>
-      <p class="note"><strong>About your data:</strong> for now, everything is saved in your own browser and nothing is sent anywhere. That keeps it private, but it also means it lives on one device. Use the CSV download in Settings to keep a copy.</p>
+    </section>
+
+    <section id="faq" class="section">
+      <h2>Quick questions</h2>
+      <div class="faq">
+        <details><summary>Is it free, and do I need to install anything?</summary><p>It is free to try and there is nothing to install. It runs in any browser, on a phone or a computer.</p></details>
+        <details><summary>Where is our data kept?</summary><p>In your own browser, on your own device. Nothing is sent anywhere. Download a full JSON backup from Settings to save and later restore all your records. Keep the backup somewhere private.</p></details>
+        <details><summary>Will the demo overwrite my real records?</summary><p>No. Turning demo data on keeps your own records safe, and turning it off brings them straight back. The Demo switch is at the top of every app page.</p></details>
+        <details><summary>Our chama has different rules. Can it cope?</summary><p>Most rules are settings: fixed or personal contribution amounts, due day and grace days, the kind of fine, welfare, and flat or reducing-balance loans. If your group does something else, tell us.</p></details>
+        <details><summary>Can every member see the record from their own phone?</summary><p>That is the next step: a shared record with logins for the treasurer, officials and members. For now, one person keeps the record and can share screenshots or a CSV.</p></details>
+      </div>
     </section>
 
     <section class="cta">
       <h2>Try it with a made-up chama in one click</h2>
-      <p>Load the demo group, look around, then enter your own.</p>
+      <p>Look around the demo group, then switch to your own with one button. Your records are never overwritten.</p>
       <div class="actions center">
         <a class="btn" href="app.html?demo=1">Explore with demo data</a>
-        <a class="btn ghost dark" href="app.html">Start with my own chama</a>
+        <a class="btn ghost dark" href="app.html?demo=0#settings">Start with my own chama</a>
       </div>
       <p class="fine-print dark">Are you a treasurer or member of a chama? Tell us how your group keeps its records and what rules it uses. <a href="https://github.com/otienoryan786-lab/chama-ledger/issues">Share feedback</a></p>
     </section>
@@ -138,7 +167,7 @@
   <footer>
     <div class="brand"><img src="logo.svg" alt="" width="32" height="32"><span>Chama Ledger</span></div>
     <p>Built by Ryan Otieno in Nairobi, Kenya, as a software project to solve a real problem for community savings groups.</p>
-    <p><a href="https://github.com/otienoryan786-lab/chama-ledger">Source code on GitHub</a></p>
+    <p class="footlinks"><a href="#top">Back to top</a> · <a href="app.html">Open the app</a> · <a href="app.html?demo=1">Demo data</a> · <a href="https://github.com/otienoryan786-lab/chama-ledger">Source code</a></p>
   </footer>
 </body>
 </html>

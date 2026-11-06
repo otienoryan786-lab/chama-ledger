@@ -64,8 +64,8 @@ Chama Ledger replaces the notebook with one record that anyone in the group can 
 - Every import shows a preview where you can fix details, and duplicates are flagged and skipped.
 
 **Data**
-- CSV export of all payments.
-- A **Load demo data** button that fills the app with sample data.
+- CSV export of payments and full JSON backup/restore for all chama records (members, settings, payments, loans, welfare and merry-go-round).
+- A **Demo data switch** that fills the app with a made-up chama and switches back with one click. Your own records are stashed while the demo is on and restored when it is off, so trying the demo never overwrites anything.
 
 ## How to run
 
@@ -73,7 +73,9 @@ No install and no build step. You only need a browser.
 
 1. Download or clone the repository.
 2. Open `index.html`, the welcome page, and click **Open the app**. You can also open `app.html` directly.
-3. Click **Explore with demo data** to look around, or go to **Settings** and enter your group's details.
+3. Click **Explore with demo data** to look around, or **Start with my own chama** and enter your group's details in **Settings**. The **Demo data** switch at the top of every app page turns the demo on and off, and the **Welcome page** link takes you back.
+
+Links you can share: `app.html?demo=1` opens the app with demo data on, and `app.html?demo=0` turns it off.
 
 ```bash
 git clone https://github.com/otienoryan786-lab/chama-ledger.git
@@ -86,7 +88,7 @@ cd chama-ledger
 Everything is saved in your browser's `localStorage`. There is no server, and nothing leaves your device. This is fine for trying the app out, but it means:
 
 - Data lives on one device and one browser only.
-- Clearing browser data erases it, so use **Download payments (CSV)** to keep a copy.
+- Clearing browser data erases it, so download **Full backup (JSON)** in Settings and store it somewhere private. The payment CSV is useful for spreadsheets but does not contain every record and cannot restore the app.
 - Please don't commit real member names, phone numbers or exported CSV files to this repository.
 
 A shared database with logins is the next phase (see the roadmap).
@@ -113,7 +115,7 @@ Records imported from a table have no payment date, so they are treated as paid 
 
 ```
 chama-ledger/
-├── index.html   Welcome page: what Chama Ledger is, who it is for, project status
+├── index.html   Welcome page: the problem, features, screenshots, why groups switch, FAQ
 ├── welcome.css  Styling for the welcome page
 ├── app.html     The app: dashboard, members, payments, loans, funds, import, settings
 ├── style.css    Styling for the app, including the mobile layout
@@ -127,10 +129,11 @@ Plain HTML, CSS and JavaScript, with no frameworks or libraries. The charts are 
 
 ## Roadmap
 
-- [x] Dashboard, members, payments and CSV export
+- [x] Dashboard, members, payments, CSV export and full JSON backup/restore
 - [x] Import from WhatsApp messages and Word or Excel tables
 - [x] Own monthly amounts, late fines, welfare fund, loans and merry-go-round
 - [x] Welcome page that explains the project and links into the app
+- [x] Demo data switch that keeps your own records safe
 - [ ] Fine cap setting
 - [ ] Loan limits and guarantors
 - [ ] Year-end share-out of savings and interest
