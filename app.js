@@ -175,7 +175,7 @@ function renderOverview(month) {
     return li;
   }) : [el("li", n ? "Nobody is in arrears. Well done." : "Add members to start tracking.", "empty")]));
 
-  const last = [...state.payments].slice(-5).reverse();
+  const last = [...state.payments].sort((a, b) => (b.paidOn || b.date).localeCompare(a.paidOn || a.date)).slice(0, 5);
   $("recent").replaceChildren(...(last.length ? last.map((p) => {
     const li = el("li"), left = el("span", memberName(p.memberId));
     left.append(el("br"), el("small", `${p.ref} · for ${p.month}`));
