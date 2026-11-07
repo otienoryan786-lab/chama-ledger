@@ -5,7 +5,7 @@ const KEYS = { mine: "chamaLedger.v1", demo: "chamaLedger.demo" };
 const MODE_KEY = "chamaLedger.mode";
 const blank = () => ({
   settings: { name: "", amount: 0, start: "", dueDay: 5, graceDays: 0, fineType: "none", fineValue: 0, welfareAmount: 0 },
-  members: [], payments: [], loans: [], payouts: [], rotation: [],
+  policy: Engine.defaultPolicy(), members: [], payments: [], loans: [], payouts: [], expenses: [], rotation: [],
 });
 // The welcome page links here with ?mode=mine or ?mode=demo. Otherwise we reuse the last mode.
 const qs = new URLSearchParams(location.search);
@@ -15,9 +15,13 @@ function loadState() {
   const st = JSON.parse(localStorage.getItem(KEYS[mode]) || "null") || blank();
   // Older saved data may lack the newer fields, so fill in the gaps
   st.settings = { ...blank().settings, ...st.settings };
-  st.loans = st.loans || []; st.payouts = st.payouts || []; st.rotation = st.rotation || [];
+  st.loans = st.loans || []; st.payouts = st.payouts || []; st.expenses = st.expenses || []; st.rotation = st.rotation || [];
+  const mergedPolicy = Engine.mergePolicy(st.policy || Engine.defaultPolicy());
+  st.policy = mergedPolicy.policy;
+  policyProblems = mergedPolicy.problems;
   return st;
 }
+let policyProblems = [];
 let state = loadState();
 const save = () => localStorage.setItem(KEYS[mode], JSON.stringify(state));
 const today = () => new Date().toISOString().slice(0, 10);
@@ -119,7 +123,7 @@ const emptyRow = (cols, text) => {
 };
 
 // ---------- Navigation ----------
-const titles = { overview: "Overview", members: "Members", payments: "Payments", settings: "Settings", import: "Import records", loans: "Loans", funds: "Funds", yearend: "Year-end share-out", calc: "Calculators" };
+const titles = { overview: "Overview", members: "Members", payments: "Payments", settings: "Settings", import: "Import records", loans: "Loans", funds: "Funds", expenses: "Expenses", yearend: "Year-end share-out", calc: "Calculators" };
 function showView() {
   const v = titles[location.hash.slice(1)] ? location.hash.slice(1) : "overview";
   document.querySelectorAll(".view").forEach((s) => (s.hidden = s.id !== "view-" + v));
@@ -241,10 +245,17 @@ function openMember(id) {
   savePledge.onclick = () => { m.pledge = Number(pledge.value) || 0; save(); render(); openMember(id); };
   const plRow = el("div", undefined, "row"); plRow.append(pl, savePledge);
   plRow.style.marginBottom = ".8rem";
+  const role = el("select");
+  [["member", "Member"], ["chair", "Chair"], ["secretary", "Secretary"], ["treasurer", "Treasurer"]].forEach(([value, label]) => role.append(new Option(label, value)));
+  role.value = ["chair", "secretary", "treasurer"].includes(m.role) ? m.role : "member";
+  const roleLabel = el("label", "Role"); roleLabel.append(role);
+  const saveRole = el("button", "Save role", "ghost");
+  saveRole.onclick = () => { m.role = role.value; save(); render(); openMember(id); };
+  const roleRow = el("div", undefined, "row"); roleRow.append(roleLabel, saveRole);
   d.replaceChildren(el("h2", m.name),
     el("p", `${m.phone ? "+" + m.phone + " · " : "No phone yet · "}pays ${kes(pledgeOf(id))} a month · paid ${kes(paidBy(id))}${m.opening ? ` (includes ${kes(m.opening)} brought forward)` : ""}`, "hint"),
     el("p", `Owes: contributions ${kes(arrears(id))} · fines ${kes(finesOwed(id))} · welfare ${kes(welfareOwed(id))}`, "hint"),
-    plRow, hist, actions);
+    plRow, roleRow, hist, actions);
   d.showModal();
 }
 
@@ -267,6 +278,59 @@ function renderPayments() {
     return tr;
   }) : [emptyRow(7, "No payments to show.")]));
 }
+function renderExpenses() {
+  const memberOptions = state.members.map((m) => new Option(m.name, m.id));
+  const keep = $("eMember").value;
+  $("eMember").replaceChildren(...memberOptions);
+  if (keep) $("eMember").value = keep;
+
+  const rows = [...state.expenses].reverse().map((expense) => {
+    const approvals = expense.approvals || [];
+    const tr = el("tr");
+    const actions = el("div", undefined, "row");
+    if (expense.status === "pending") {
+      const eligible = Engine.eligibleApprovers(state, expense);
+      if (eligible.length) {
+        const approver = el("select");
+        eligible.forEach((m) => approver.append(new Option(m.name, m.id)));
+        const approve = el("button", "Approve", "ghost");
+        approve.onclick = () => {
+          const result = Engine.approveExpense(state, expense.id, approver.value, today());
+          if (!result.ok) { $("expenseMsg").textContent = result.error; $("expenseMsg").className = "err"; return; }
+          save(); render();
+        };
+        actions.append(approver, approve);
+      } else {
+        actions.append(el("span", "No eligible approvers. Assign official roles to members first.", "hint"));
+      }
+      const reject = el("button", "Reject", "del");
+      reject.onclick = () => { if (Engine.rejectExpense(state, expense.id)) { save(); render(); } };
+      actions.append(reject);
+    }
+    tr.append(
+      cell(expense.date),
+      cell(expense.description + (expense.receipt ? ` · Receipt: ${expense.receipt}` : "")),
+      cell(kes(expense.amount)),
+      cell(memberName(expense.draftedBy)),
+      cell(expense.status),
+      cell(`${approvals.length}/${expense.needed || 0}${approvals.length ? ` · ${approvals.map((approval) => memberName(approval.memberId)).join(", ")}` : ""}`),
+      cell(actions)
+    );
+    return tr;
+  });
+  $("expenseRows").replaceChildren(...(rows.length ? rows : [emptyRow(7, "No expenses recorded yet.")]));
+
+  const journal = Engine.journal(state), balances = Engine.balances(journal), check = Engine.check(journal);
+  $("ledgerStats").replaceChildren(...Object.entries(Engine.ACCOUNTS).map(([id, account]) => {
+    const card = el("div", undefined, "stat");
+    card.append(el("b", kes(balances[id])), el("span", account.label));
+    return card;
+  }));
+  $("ledgerStatus").textContent = check.balanced
+    ? `Ledger balances: ${kes(check.debits)} debits and ${kes(check.credits)} credits.${check.cashNegative ? " Recorded payouts and expenses exceed available cash." : ""}`
+    : `Ledger is out of balance: ${kes(check.debits)} debits and ${kes(check.credits)} credits. Review the saved records.`;
+  $("ledgerStatus").className = check.balanced ? "hint" : "err";
+}
 function fillSettings() {
   $("setName").value = state.settings.name;
   $("setAmount").value = state.settings.amount || "";
@@ -274,6 +338,23 @@ function fillSettings() {
   $("setDue").value = state.settings.dueDay; $("setGrace").value = state.settings.graceDays;
   $("setFineType").value = state.settings.fineType; $("setFineValue").value = state.settings.fineValue || "";
   $("setWelfare").value = state.settings.welfareAmount || "";
+  const p = state.policy;
+  $("policyModel").value = p.year_end_shareout.model;
+  $("policyIncludeFines").checked = p.year_end_shareout.include_fines;
+  $("policyIncludeInterest").checked = p.year_end_shareout.include_loan_interest;
+  $("policyIncludeWelfare").checked = p.year_end_shareout.include_welfare_surplus;
+  $("policyDeductLoans").checked = p.year_end_shareout.deduct_unpaid_loans;
+  $("policySeparateMgr").checked = p.merry_go_round.is_separate_fund;
+  $("policyMgrAmount").value = p.merry_go_round.amount_per_member;
+  $("policyApproval").value = p.expense_governance.approval_policy;
+  $("policySignatories").value = p.expense_governance.signatories_required;
+  $("policyThreshold").value = p.expense_governance.approval_threshold;
+  $("yeMethod").value = { savings_proportional: "savings", time_weighted: "time", equal: "equal" }[p.year_end_shareout.model];
+  $("yeInterest").checked = p.year_end_shareout.include_loan_interest;
+  $("yeFines").checked = p.year_end_shareout.include_fines;
+  $("yeDeduct").checked = p.year_end_shareout.deduct_unpaid_loans;
+  $("policyMsg").textContent = policyProblems.length ? `Some saved policy values were invalid and were replaced with defaults: ${policyProblems.join(" ")}` : "";
+  $("policyMsg").className = policyProblems.length ? "err" : "hint";
 }
 function render() {
   updateModeUI();
@@ -284,6 +365,7 @@ function render() {
   renderPayments();
   renderLoans();
   renderFunds(month);
+  renderExpenses();
   renderYearEnd();
 }
 
@@ -294,17 +376,71 @@ $("statusFilter").onchange = render;
 $("fMember").onchange = renderPayments;
 
 $("saveSettings").onclick = () => {
+  const mergedPolicy = Engine.mergePolicy({
+    year_end_shareout: {
+      model: $("policyModel").value,
+      include_fines: $("policyIncludeFines").checked,
+      include_loan_interest: $("policyIncludeInterest").checked,
+      include_welfare_surplus: $("policyIncludeWelfare").checked,
+      deduct_unpaid_loans: $("policyDeductLoans").checked,
+    },
+    merry_go_round: { is_separate_fund: $("policySeparateMgr").checked, amount_per_member: Number($("policyMgrAmount").value) },
+    expense_governance: {
+      approval_policy: $("policyApproval").value,
+      signatories_required: Number($("policySignatories").value),
+      approval_threshold: Number($("policyThreshold").value),
+    },
+  }, state.policy);
+  if (mergedPolicy.problems.length) {
+    $("policyMsg").textContent = mergedPolicy.problems.join(" ");
+    $("policyMsg").className = "err";
+    return;
+  }
   state.settings = {
     name: $("setName").value.trim(), amount: Number($("setAmount").value) || 0, start: $("setStart").value,
     dueDay: Number($("setDue").value) || 5, graceDays: Number($("setGrace").value) || 0,
     fineType: $("setFineType").value, fineValue: Number($("setFineValue").value) || 0, welfareAmount: Number($("setWelfare").value) || 0,
   };
+  state.policy = mergedPolicy.policy;
+  policyProblems = [];
   save(); render();
+  $("policyMsg").textContent = "Settings saved.";
+  $("policyMsg").className = "good";
 };
 $("memberForm").onsubmit = (e) => {
   e.preventDefault();
-  state.members.push({ id: uid(), name: $("mName").value.trim(), phone: $("mPhone").value.trim(), opening: Number($("mOpening").value) || 0, pledge: Number($("mPledge").value) || 0 });
+  state.members.push({ id: uid(), name: $("mName").value.trim(), phone: $("mPhone").value.trim(), opening: Number($("mOpening").value) || 0, pledge: Number($("mPledge").value) || 0, role: $("mRole").value });
   e.target.reset(); save(); render();
+};
+$("expenseForm").onsubmit = (e) => {
+  e.preventDefault();
+  const amount = Number($("eAmount").value);
+  if (!state.members.length) { $("expenseMsg").textContent = "Add a member before recording an expense."; $("expenseMsg").className = "err"; return; }
+  if (!Number.isFinite(amount) || amount <= 0 || !$("eDate").value || !$("eDescription").value.trim()) {
+    $("expenseMsg").textContent = "Enter a valid date, amount and description.";
+    $("expenseMsg").className = "err";
+    return;
+  }
+  const draft = {
+    id: uid(),
+    date: $("eDate").value,
+    amount,
+    description: $("eDescription").value.trim(),
+    draftedBy: $("eMember").value,
+    receipt: $("eReceipt").value.trim(),
+  };
+  const needed = Engine.approvalsNeeded(state, amount);
+  if (state.policy.expense_governance.approval_policy === "multi_sig" && Engine.eligibleApprovers(state, draft).length < needed) {
+    $("expenseMsg").textContent = `This expense needs ${needed} eligible official approval(s), but fewer are available. Assign official roles or change the approval rule in Settings.`;
+    $("expenseMsg").className = "err";
+    return;
+  }
+  const expense = Engine.createExpense(state, draft);
+  e.target.reset();
+  $("eDate").value = today();
+  save(); render();
+  $("expenseMsg").textContent = expense.status === "approved" ? "Expense saved and approved." : "Expense saved; waiting for approval.";
+  $("expenseMsg").className = "good";
 };
 $("payForm").onsubmit = (e) => {
   e.preventDefault();
@@ -492,6 +628,7 @@ $("commitImport").onclick = () => {
 };
 $("pDate").value = today();
 $("lDate").value = today();
+$("eDate").value = today();
 $("pMethod").onchange = () => {
   const cash = $("pMethod").value === "cash";
   $("pRef").disabled = cash; $("pRef").required = !cash;
@@ -570,6 +707,8 @@ const welfareBalance = () => welfareCollected() - state.payouts.filter((p) => p.
 
 function renderFunds(month) {
   const order = rotationOrder();
+  const mgrPolicy = state.policy.merry_go_round;
+  $("mgrPolicyHint").textContent = `One member receives the pot each month, starting from the group's start month. Record contributions as Merry-go-round payments${mgrPolicy.amount_per_member ? ` (target ${kes(mgrPolicy.amount_per_member)} per member each month)` : ""}. The fund is ${mgrPolicy.is_separate_fund ? "separate from member savings" : "an advance from member savings"}.`;
   $("orderList").replaceChildren(...(order.length ? order.map((id, i) => {
     const li = el("li"), btns = el("span");
     const move = (d) => () => { const j = i + d; if (j < 0 || j >= order.length) return; [order[i], order[j]] = [order[j], order[i]]; save(); render(); };
@@ -640,7 +779,7 @@ function setMode(next) {
   mode = next;
   localStorage.setItem(MODE_KEY, mode);
   if (mode === "demo" && !localStorage.getItem(KEYS.demo)) { state = blank(); buildDemo(); } else state = loadState();
-  $("yeFrom").value = ""; $("yeTo").value = "";
+  $("yeYear").value = "";
   fillSettings(); render(); renderCalc();
   location.hash = "overview";
   window.scrollTo(0, 0);

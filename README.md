@@ -49,9 +49,10 @@ Chama Ledger replaces the notebook with one record that anyone in the group can 
 - **Late fines** with rules set per chama: due day, grace days, and a flat amount, an amount per day late, or a percent of the contribution.
 - **Welfare fund** with monthly collection, a balance and payouts with reasons.
 - **Loans with interest**, either flat or reducing balance, with instalments, repayments and the balance still owed.
+- **Expense approvals and a balanced ledger.** Configure treasurer-only, majority-vote or multiple-official approvals, then track approved expenses and account balances.
 
 **Year-end and calculators**
-- **Year-end share-out** from your own records. Choose how your chama shares: by savings, by savings and time, or equally. It can add loan interest and fines, add other income, take off expenses and unpaid loans, and return savings or only the share. Print it, copy it or download it as CSV.
+- **Year-end share-out** from your own records. Choose how your chama shares: by savings, by savings and time, or equally. It can add loan interest, fines and welfare surplus, subtract ledger expenses and unpaid dues, add other income, and return savings or only the share. Print it, copy it or download it as CSV.
 - **Calculators** for any chama, with no setup: loan schedules (flat or reducing balance), late fines, merry-go-round plans, a quick year-end, savings goals and loan limits.
 
 **Merry-go-round**
@@ -85,12 +86,19 @@ cd chama-ledger
 # then open index.html in your browser
 ```
 
+The policy and accounting engine tests run with Node.js:
+
+```bash
+node tests/engine.test.js
+```
+
 ## How data is stored
 
 Everything is saved in your browser's `localStorage`. There is no server, and nothing leaves your device. This is fine for trying the app out, but it means:
 
 - Data lives on one device and one browser only.
 - Clearing browser data erases it, so use **Download payments (CSV)** to keep a copy.
+- Expense approvals are local records against member roles, not verified signatures; the app has no sign-in or identity verification.
 - Please don't commit real member names, phone numbers or exported CSV files to this repository.
 
 A shared database with logins is the next phase (see the roadmap).
@@ -119,10 +127,13 @@ Records imported from a table have no payment date, so they are treated as paid 
 chama-ledger/
 ├── index.html   Welcome page: what Chama Ledger is, who it is for, project status
 ├── welcome.css  Styling for the welcome page
-├── app.html     The app: dashboard, members, payments, loans, funds, import, settings
+├── app.html     The app: dashboard, members, payments, loans, funds, expenses, import, settings
 ├── style.css    Styling for the app, including the mobile layout
 ├── app.js       Logic: data, money rules, rendering, import, demo data
 ├── calculators.js  Calculators and the year-end share-out
+├── engine.js   Policy rules, journal ledger, share-out and expense approvals
+├── tests/
+│   └── engine.test.js  Node tests for policy, ledger and approval rules
 ├── _headers     Security headers for hosts that support them
 ├── LICENSE      Terms of use
 ├── SECURITY.md  What must never be committed, and how to report problems
@@ -151,6 +162,7 @@ Plain HTML, CSS and JavaScript, with no frameworks or libraries. The charts are 
 - [ ] Loan limits and guarantors
 - [x] Year-end share-out of savings and interest
 - [x] Calculators for loans, fines, rotations, year-end, savings goals and loan limits
+- [x] Policy-driven expenses, approvals and ledger balances
 - [ ] Backend and database, so a whole group shares one record
 - [ ] Member logins and roles (treasurer, official, member)
 - [ ] M-Pesa STK push for contributions
