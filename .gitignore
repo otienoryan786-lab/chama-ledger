@@ -1,0 +1,12 @@
+.DS_Store
+Thumbs.db
+node_modules/
+# secrets and keys must never be committed
+.env
+.env.*
+*.pem
+*.key
+secrets/
+# real member data exports must never be committed
+*.csv
+*.xlsx

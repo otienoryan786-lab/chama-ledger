@@ -242,3 +242,86 @@
         <div class="panel noprint">
           <h2>Calculators</h2>
           <p class="hint">The sums a treasurer does every month. They work on any numbers you type, so they suit any chama, not only the one in the app.</p>
+          <div class="tabs" id="calcTabs"></div>
+        </div>
+        <div class="panel" id="calcBox"></div>
+      </section>
+
+      <!-- IMPORT -->
+      <section class="view" id="view-import" hidden>
+        <div class="panel">
+          <h2>Bring in your existing records</h2>
+          <p class="hint">Most chamas already keep records in WhatsApp, Word or a ledger book. Pick yours. You always get a preview before anything is saved.</p>
+          <div class="tabs" id="importTabs">
+            <button data-tab="chat" class="on">WhatsApp / M-Pesa messages</button>
+            <button data-tab="grid">Word, Excel or ledger table</button>
+          </div>
+        </div>
+        <div class="panel" id="tab-chat">
+          <h2>Paste messages</h2>
+          <p class="hint">Copy payment messages or M-Pesa confirmations from your group chat and paste them here, one message per line.</p>
+          <textarea id="chatText" rows="8" placeholder="SJK4X9ABCD Confirmed. Ksh2,000.00 received from WANJIKU KAMAU 0712000001 on 5/11/26"></textarea>
+          <div class="row"><button id="parseChat">Find payments</button></div>
+        </div>
+        <div class="panel" id="tab-grid" hidden>
+          <h2>Paste a table</h2>
+          <p class="hint">Copy the table from Word or Excel. First row: the months (Jan, Feb or 2026-01). First column: member names. Cells: the amount paid, blank if not paid.</p>
+          <div class="row"><label>Year of those months <input id="gridYear" type="number" min="2000" max="2100"></label></div>
+          <textarea id="gridText" rows="8" placeholder="Name&#9;Jan&#9;Feb&#9;Mar&#10;Wanjiku Kamau&#9;2000&#9;2000&#9;&#10;Otieno Odhiambo&#9;2000&#9;&#9;2000"></textarea>
+          <div class="row"><button id="parseGrid">Read table</button></div>
+        </div>
+        <div class="panel" id="preview" hidden>
+          <h2>Check before saving</h2>
+          <div class="scroll">
+            <table>
+              <thead><tr><th>Use</th><th>Member</th><th>Month</th><th>Amount</th><th>Code</th><th>Note</th></tr></thead>
+              <tbody id="previewRows"></tbody>
+            </table>
+          </div>
+          <div class="row"><button id="commitImport">Save selected payments</button><button id="cancelImport" class="ghost">Cancel</button></div>
+          <p id="importMsg" role="status"></p>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="view" id="view-settings" hidden>
+        <div class="panel">
+          <h2>Group settings</h2>
+          <div class="row">
+            <label>Group name <input id="setName" placeholder="e.g. Donholm Vijana Chama"></label>
+            <label>Monthly contribution (KES) <input id="setAmount" type="number" min="0"></label>
+            <label>Started in <input id="setStart" type="month"></label>
+            <label>Contribution due on day <input id="setDue" type="number" min="1" max="28"></label>
+            <label>Grace days <input id="setGrace" type="number" min="0"></label>
+            <label>Late fine
+              <select id="setFineType">
+                <option value="none">No fines</option>
+                <option value="flat">Flat amount per late payment</option>
+                <option value="daily">Amount per day late</option>
+                <option value="percent">Percent of the contribution</option>
+              </select>
+            </label>
+            <label>Fine amount (KES or %) <input id="setFineValue" type="number" min="0" step="0.1"></label>
+            <label>Welfare per member per month (KES, 0 = off) <input id="setWelfare" type="number" min="0"></label>
+            <button id="saveSettings">Save settings</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Your data</h2>
+          <div class="row">
+            <button id="exportBtn" class="ghost">Download payments (CSV)</button>
+            <button id="demoBtn" class="ghost">View demo data</button>
+            <button id="resetBtn" class="danger">Erase everything</button>
+          </div>
+          <p class="hint">Your chama's data is saved in this browser only. The demo is kept separately, so switching never changes your records.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<dialog id="memberDialog"></dialog>
+<script src="calculators.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

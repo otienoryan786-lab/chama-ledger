@@ -1,0 +1,22 @@
+Copyright (c) 2026 Ryan Otieno. All rights reserved.
+
+Chama Ledger is proprietary software. The source code is published on GitHub
+so that it can be read and evaluated, for example by people considering
+working with the author. Publishing it does not give anyone a licence to use
+it beyond that.
+
+You may NOT, without the author's prior written permission:
+  - copy, host, or redistribute this software or any part of it;
+  - modify it or build another product from it;
+  - use it, or anything derived from it, for any commercial purpose;
+  - remove or change this notice, the name Chama Ledger or the logo.
+
+GitHub's Terms of Service allow other users to view and fork public
+repositories within GitHub. That permission applies only to using GitHub's
+features and does not extend to any use of the code outside GitHub.
+
+The software is provided "as is", without warranty of any kind. Figures it
+produces (loans, fines, share-outs) are aids for a treasurer and should be
+checked against the chama's own rules before any money is paid out.
+
+To ask for permission, open an issue on the GitHub repository.
