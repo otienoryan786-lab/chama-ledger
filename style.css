@@ -84,26 +84,32 @@ td .row{flex-wrap:nowrap;gap:.4rem}
 
 a.brand{color:#fff;text-decoration:none}
 
-/* demo switch, banner, navigation back to the welcome page */
-.topctl{display:flex;align-items:end;gap:1rem;flex-wrap:wrap}
-.homelink{display:none;color:var(--ink);font-size:.9rem;padding:.55rem 0}
-.sidefoot{position:absolute;left:.9rem;right:.9rem;bottom:1.2rem;color:#b9c8d4;text-decoration:none;font-size:.9rem;padding:.6rem .8rem;border:1px solid #2c4560;border-radius:4px}
-.sidefoot:hover{background:#1b3550;color:#fff}
-.switch{display:inline-flex;align-items:center;gap:.6rem;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:.35rem .9rem .35rem .4rem;font-size:.9rem}
-.switch .knob{width:38px;height:22px;border-radius:999px;background:#b9c8d4;position:relative;transition:background .15s;flex:none}
-.switch .knob::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s}
-.switch[aria-checked="true"]{border-color:var(--accent)}
-.switch[aria-checked="true"] .knob{background:var(--accent)}
-.switch[aria-checked="true"] .knob::after{transform:translateX(16px)}
-.demobar{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;background:var(--accent);color:var(--ink);padding:.6rem 1.4rem;font-size:.92rem}
-.demobar button{background:var(--ink);padding:.4rem .9rem;font-size:.9rem}
-.panel.start{border-left:6px solid var(--accent)}
-.panel.start .hint{margin-top:-.4rem}
-a.btnlink.dark{background:var(--ink)}
+/* switching between your chama and the demo */
+.top-right{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.homelink{color:var(--muted);text-decoration:none;font-size:.9rem;white-space:nowrap}
+.homelink:hover{color:var(--ink);text-decoration:underline}
+.mode{display:inline-flex;border:1px solid var(--ink);border-radius:5px;overflow:hidden}
+.mode button{background:transparent;color:var(--ink);border-radius:0;padding:.4rem .8rem;font-size:.9rem}
+.mode button.on{background:var(--ink);color:#fff}
+.banner{background:var(--accent);color:var(--ink);padding:.7rem 1.4rem;display:flex;gap:.8rem;flex-wrap:wrap;align-items:center}
+.banner span{flex:1 1 280px}
+.banner button{padding:.4rem .9rem;font-size:.9rem}
+.banner button.ghost{border-color:var(--ink)}
+.onboard{border-left:6px solid var(--accent)}
+
+/* year-end and calculators */
+label.check{flex-direction:row;align-items:center;gap:.5rem;color:var(--ink);font-size:.95rem;padding-bottom:.45rem}
+label.check input{min-width:0;width:auto}
+.checks{margin:.8rem 0}
+tfoot td{font-weight:500;border-top:2px solid var(--ink);border-bottom:0}
+td .unpaid{color:var(--bad)}
 @media (max-width:760px){
-  .sidefoot{display:none}
-  .homelink{display:inline-block}
-  .topctl{width:100%;justify-content:space-between}
-  .demobar{padding:.6rem .9rem}
+  nav{overflow-x:auto}
+  nav button{flex:0 0 auto;padding:.55rem .7rem}
 }
-@media (prefers-reduced-motion:reduce){.switch .knob,.switch .knob::after{transition:none}}
+@media print{
+  .side,.banner,.homelink,.mode,.noprint,.top-right label{display:none!important}
+  .app{display:block}
+  .panel{border:0;padding:0}
+  body{background:#fff}
+}

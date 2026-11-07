@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Chama Ledger</title>
   <link rel="icon" href="logo.svg" type="image/svg+xml">
@@ -19,38 +21,38 @@
       <button data-view="payments">Payments</button>
       <button data-view="loans">Loans</button>
       <button data-view="funds">Funds</button>
+      <button data-view="yearend">Year-end</button>
+      <button data-view="calc">Calculators</button>
       <button data-view="import">Import</button>
       <button data-view="settings">Settings</button>
     </nav>
-    <a class="sidefoot" href="index.html">&larr; Welcome page</a>
   </aside>
 
   <div class="content">
-    <div class="demobar" id="demoBar" role="status" hidden>
-      <span><strong>Demo mode.</strong> You are looking at a made-up chama. <span id="demoSafe"></span></span>
-      <button id="exitDemoBar">Exit demo</button>
-    </div>
-
     <header class="top">
       <div><h1 id="pageTitle">Overview</h1><p id="groupName"></p></div>
-      <div class="topctl">
+      <div class="top-right">
         <a class="homelink" href="index.html">&larr; Welcome page</a>
-        <button id="demoToggle" class="switch" role="switch" aria-checked="false" title="Fill the app with a made-up chama, or go back to your own data"><span class="knob"></span><span class="swlabel">Demo data</span></button>
+        <div class="mode" role="group" aria-label="Which data to show">
+          <button type="button" id="modeMine">My chama</button>
+          <button type="button" id="modeDemo">Demo data</button>
+        </div>
         <label>Showing month <input id="viewMonth" type="month"></label>
       </div>
     </header>
+    <div class="banner" id="demoBanner" hidden>
+      <span><strong>Demo data.</strong> You are looking at a made-up group. Your own records are safe and untouched.</span>
+      <button type="button" id="backToMine">Switch to my chama</button>
+      <button type="button" id="resetDemo" class="ghost">Reset demo</button>
+    </div>
 
     <main>
       <!-- OVERVIEW -->
       <section class="view" id="view-overview">
-        <div class="panel start" id="emptyStart" hidden>
-          <h2>Welcome. Let's set up your chama.</h2>
-          <p class="hint">Three ways to begin. You can switch demo data on and off at any time without losing anything of your own.</p>
-          <div class="row">
-            <a class="btnlink dark" href="#settings">Set up my group</a>
-            <a class="btnlink dark" href="#import">Import my records</a>
-            <button id="startDemo" class="ghost">Look around with demo data</button>
-          </div>
+        <div class="panel onboard" id="onboard" hidden>
+          <h2>Welcome. Your chama is not set up yet.</h2>
+          <p class="hint">Add your group's details and members, or look around first with a made-up group.</p>
+          <div class="row"><button type="button" id="onboardSetup">Set up my chama</button><button type="button" id="onboardDemo" class="ghost">View demo data</button></div>
         </div>
         <div class="stats" id="stats"></div>
         <div class="grid2">
@@ -184,84 +186,59 @@
         </div>
       </section>
 
-      <!-- IMPORT -->
-      <section class="view" id="view-import" hidden>
-        <div class="panel">
-          <h2>Bring in your existing records</h2>
-          <p class="hint">Most chamas already keep records in WhatsApp, Word or a ledger book. Pick yours. You always get a preview before anything is saved.</p>
-          <div class="tabs" id="importTabs">
-            <button data-tab="chat" class="on">WhatsApp / M-Pesa messages</button>
-            <button data-tab="grid">Word, Excel or ledger table</button>
-          </div>
-        </div>
-        <div class="panel" id="tab-chat">
-          <h2>Paste messages</h2>
-          <p class="hint">Copy payment messages or M-Pesa confirmations from your group chat and paste them here, one message per line.</p>
-          <textarea id="chatText" rows="8" placeholder="SJK4X9ABCD Confirmed. Ksh2,000.00 received from WANJIKU KAMAU 0712000001 on 5/11/26"></textarea>
-          <div class="row"><button id="parseChat">Find payments</button></div>
-        </div>
-        <div class="panel" id="tab-grid" hidden>
-          <h2>Paste a table</h2>
-          <p class="hint">Copy the table from Word or Excel. First row: the months (Jan, Feb or 2026-01). First column: member names. Cells: the amount paid, blank if not paid.</p>
-          <div class="row"><label>Year of those months <input id="gridYear" type="number" min="2000" max="2100"></label></div>
-          <textarea id="gridText" rows="8" placeholder="Name&#9;Jan&#9;Feb&#9;Mar&#10;Wanjiku Kamau&#9;2000&#9;2000&#9;&#10;Otieno Odhiambo&#9;2000&#9;&#9;2000"></textarea>
-          <div class="row"><button id="parseGrid">Read table</button></div>
-        </div>
-        <div class="panel" id="preview" hidden>
-          <h2>Check before saving</h2>
-          <div class="scroll">
-            <table>
-              <thead><tr><th>Use</th><th>Member</th><th>Month</th><th>Amount</th><th>Code</th><th>Note</th></tr></thead>
-              <tbody id="previewRows"></tbody>
-            </table>
-          </div>
-          <div class="row"><button id="commitImport">Save selected payments</button><button id="cancelImport" class="ghost">Cancel</button></div>
-          <p id="importMsg" role="status"></p>
-        </div>
-      </section>
-
-      <!-- SETTINGS -->
-      <section class="view" id="view-settings" hidden>
-        <div class="panel">
-          <h2>Group settings</h2>
+      <!-- YEAR-END -->
+      <section class="view" id="view-yearend" hidden>
+        <div class="panel noprint">
+          <h2>Year-end share-out</h2>
+          <p class="hint">Every chama shares out in its own way, so choose how yours does it. Nothing is saved or paid from this page. It only works out the figures.</p>
           <div class="row">
-            <label>Group name <input id="setName" placeholder="e.g. Donholm Vijana Chama"></label>
-            <label>Monthly contribution (KES) <input id="setAmount" type="number" min="0"></label>
-            <label>Started in <input id="setStart" type="month"></label>
-            <label>Contribution due on day <input id="setDue" type="number" min="1" max="28"></label>
-            <label>Grace days <input id="setGrace" type="number" min="0"></label>
-            <label>Late fine
-              <select id="setFineType">
-                <option value="none">No fines</option>
-                <option value="flat">Flat amount per late payment</option>
-                <option value="daily">Amount per day late</option>
-                <option value="percent">Percent of the contribution</option>
+            <label>From month <input id="yeFrom" type="month"></label>
+            <label>To month <input id="yeTo" type="month"></label>
+            <label>Share income by
+              <select id="yeMethod">
+                <option value="savings">Savings (a share follows what each member saved)</option>
+                <option value="time">Savings and time (earlier savings earn more)</option>
+                <option value="equal">Equal (everyone gets the same share)</option>
               </select>
             </label>
-            <label>Fine amount (KES or %) <input id="setFineValue" type="number" min="0" step="0.1"></label>
-            <label>Welfare per member per month (KES, 0 = off) <input id="setWelfare" type="number" min="0"></label>
-            <button id="saveSettings">Save settings</button>
+          </div>
+          <div class="row checks">
+            <label class="check"><input type="checkbox" id="yeInterest" checked> Add loan interest</label>
+            <label>Interest counted
+              <select id="yeIntMode"><option value="received">Received so far</option><option value="accrued">Earned, including unpaid</option></select>
+            </label>
+            <label class="check"><input type="checkbox" id="yeFines" checked> Add fines collected</label>
+            <label class="check"><input type="checkbox" id="yeReturn" checked> Return savings with the share-out</label>
+            <label class="check"><input type="checkbox" id="yeDeduct" checked> Take off unpaid loans, fines and welfare</label>
+          </div>
+          <div class="row">
+            <label>Other income to share (KES) <input id="yeOther" type="number" min="0" value="0"></label>
+            <label>Expenses to take off (KES) <input id="yeExpenses" type="number" min="0" value="0"></label>
           </div>
         </div>
+        <div class="stats" id="yeStats"></div>
         <div class="panel">
-          <h2>Your data</h2>
-          <div class="row">
-            <button id="backupBtn" class="ghost">Download full backup (JSON)</button>
-            <button id="restoreBtn" class="ghost">Restore from backup</button>
-            <input id="backupFile" type="file" accept=".json,application/json" hidden>
-            <button id="exportBtn" class="ghost">Download payments (CSV)</button>
-            <button id="demoBtn" class="ghost">Turn on demo data</button>
-            <button id="resetBtn" class="danger">Erase everything</button>
+          <div class="row between">
+            <h2>Who receives what</h2>
+            <div class="row noprint">
+              <button id="yeCsv" class="ghost">Download CSV</button>
+              <button id="yeCopy" class="ghost">Copy summary</button>
+              <button id="yePrint" class="ghost">Print</button>
+            </div>
           </div>
-          <p id="backupMsg" role="status" class="hint">A full JSON backup includes members, settings, payments, loans, welfare and merry-go-round records. Keep it somewhere private. Restore replaces the data in this browser.</p>
-          <p class="hint">Data is saved in this browser only. Turning demo data on never overwrites your own records: they come back when you turn it off.</p>
+          <div class="scroll">
+            <table>
+              <thead><tr><th>Member</th><th>Savings</th><th>Share %</th><th>Income share</th><th>Deductions</th><th>Payout</th><th>Includes</th></tr></thead>
+              <tbody id="yeRows"></tbody>
+              <tfoot id="yeFoot"></tfoot>
+            </table>
+          </div>
+          <p class="hint" id="yeNote"></p>
         </div>
       </section>
-    </main>
-  </div>
-</div>
 
-<dialog id="memberDialog"></dialog>
-<script src="app.js"></script>
-</body>
-</html>
+      <!-- CALCULATORS -->
+      <section class="view" id="view-calc" hidden>
+        <div class="panel noprint">
+          <h2>Calculators</h2>
+          <p class="hint">The sums a treasurer does every month. They work on any numbers you type, so they suit any chama, not only the one in the app.</p>

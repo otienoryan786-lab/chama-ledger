@@ -1,22 +1,25 @@
-// ---------- State: one object, saved in the browser's localStorage ----------
-const KEY = "chamaLedger.v1";
-const STASH = "chamaLedger.v1.stash"; // your own data, kept safe while demo data is switched on
+// ---------- State: one object per mode, saved in the browser's localStorage ----------
+// "mine" is your chama's real records. "demo" is a made-up group kept in its own slot,
+// so switching between them never changes or erases anything.
+const KEYS = { mine: "chamaLedger.v1", demo: "chamaLedger.demo" };
+const MODE_KEY = "chamaLedger.mode";
 const blank = () => ({
   settings: { name: "", amount: 0, start: "", dueDay: 5, graceDays: 0, fineType: "none", fineValue: 0, welfareAmount: 0 },
-  members: [], payments: [], loans: [], payouts: [], rotation: [], demo: false,
+  members: [], payments: [], loans: [], payouts: [], rotation: [],
 });
-// Older saved data may lack the newer fields, so fill in the gaps
-function normalize(s) {
-  s = s || blank();
-  s.settings = { ...blank().settings, ...s.settings };
-  s.members = s.members || []; s.payments = s.payments || [];
-  s.loans = s.loans || []; s.payouts = s.payouts || []; s.rotation = s.rotation || [];
-  s.demo = !!s.demo;
-  return s;
+// The welcome page links here with ?mode=mine or ?mode=demo. Otherwise we reuse the last mode.
+const qs = new URLSearchParams(location.search);
+let mode = qs.get("mode") === "demo" || qs.get("demo") === "1" ? "demo" : qs.get("mode") === "mine" ? "mine" : localStorage.getItem(MODE_KEY) === "demo" ? "demo" : "mine";
+localStorage.setItem(MODE_KEY, mode);
+function loadState() {
+  const st = JSON.parse(localStorage.getItem(KEYS[mode]) || "null") || blank();
+  // Older saved data may lack the newer fields, so fill in the gaps
+  st.settings = { ...blank().settings, ...st.settings };
+  st.loans = st.loans || []; st.payouts = st.payouts || []; st.rotation = st.rotation || [];
+  return st;
 }
-const readJSON = (k) => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } };
-let state = normalize(readJSON(KEY));
-const save = () => localStorage.setItem(KEY, JSON.stringify(state));
+let state = loadState();
+const save = () => localStorage.setItem(KEYS[mode], JSON.stringify(state));
 const today = () => new Date().toISOString().slice(0, 10);
 
 // ---------- Helpers ----------
@@ -116,7 +119,7 @@ const emptyRow = (cols, text) => {
 };
 
 // ---------- Navigation ----------
-const titles = { overview: "Overview", members: "Members", payments: "Payments", settings: "Settings", import: "Import records", loans: "Loans", funds: "Funds" };
+const titles = { overview: "Overview", members: "Members", payments: "Payments", settings: "Settings", import: "Import records", loans: "Loans", funds: "Funds", yearend: "Year-end share-out", calc: "Calculators" };
 function showView() {
   const v = titles[location.hash.slice(1)] ? location.hash.slice(1) : "overview";
   document.querySelectorAll(".view").forEach((s) => (s.hidden = s.id !== "view-" + v));
@@ -167,7 +170,7 @@ function renderOverview(month) {
   const ring = svg("svg", { viewBox: "0 0 140 140", role: "img", "aria-label": pct + " percent paid" });
   ring.append(
     svg("circle", { cx: 70, cy: 70, r: 52, fill: "none", stroke: "#cfd9e0", "stroke-width": 14 }),
-    svg("circle", { cx: 70, cy: 70, r: 52, fill: "none", stroke: "#1f7a4d", "stroke-width": 14, "stroke-linecap": "round", "stroke-dasharray": `${(pct / 100) * C} ${C}`, transform: "rotate(-90 70 70)" }),
+    svg("circle", { cx: 70, cy: 70, r: 52, fill: "none", stroke: "#1f7a4d", "stroke-width": 14, "stroke-linecap": pct ? "round" : "butt", "stroke-dasharray": `${(pct / 100) * C} ${C}`, transform: "rotate(-90 70 70)" }),
     svg("text", { x: 70, y: 78, "text-anchor": "middle", "font-size": 26, "font-weight": 800, fill: "#12263a" }, pct + "%")
   );
   $("ring").replaceChildren(ring);
@@ -273,6 +276,7 @@ function fillSettings() {
   $("setWelfare").value = state.settings.welfareAmount || "";
 }
 function render() {
+  updateModeUI();
   const month = $("viewMonth").value || thisMonth();
   $("groupName").textContent = state.settings.name || "Set your group name in Settings";
   renderOverview(month);
@@ -280,7 +284,7 @@ function render() {
   renderPayments();
   renderLoans();
   renderFunds(month);
-  renderDemoUi();
+  renderYearEnd();
 }
 
 // ---------- Events ----------
@@ -320,127 +324,14 @@ $("exportBtn").onclick = () => {
   a.download = "chama-payments.csv";
   a.click();
 };
-function backupError(message) {
-  $("backupMsg").textContent = message;
-  $("backupMsg").className = "err";
-}
-$("backupBtn").onclick = () => {
-  if (state.demo) return backupError("Exit demo mode before backing up your own data.");
-  try {
-    const backup = { format: "chama-ledger-backup", version: 1, exportedAt: new Date().toISOString(), data: state };
-    const url = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }));
-    const a = el("a");
-    a.href = url;
-    a.download = `chama-ledger-backup-${today()}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    $("backupMsg").textContent = "Full backup downloaded. Store it somewhere private and safe.";
-    $("backupMsg").className = "good";
-  } catch (error) {
-    backupError(`Could not create the backup: ${error.message}`);
-  }
-};
-function validateBackup(backup) {
-  const record = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
-  const requireString = (value, label) => {
-    if (typeof value !== "string") throw new Error(`Invalid ${label}.`);
-  };
-  const requireNumber = (value, label) => {
-    if (typeof value !== "number" || !Number.isFinite(value)) throw new Error(`Invalid ${label}.`);
-  };
-  if (!record(backup) || backup.format !== "chama-ledger-backup" || backup.version !== 1 || !record(backup.data)) {
-    throw new Error("This is not a supported Chama Ledger backup file.");
-  }
-  const data = backup.data;
-  if (!record(data.settings) || data.demo === true ||
-      !Array.isArray(data.members) || !Array.isArray(data.payments) ||
-      !Array.isArray(data.loans) || !Array.isArray(data.payouts) ||
-      !Array.isArray(data.rotation)) {
-    throw new Error("The backup is missing required chama records or contains demo data.");
-  }
-  const settings = normalize(data).settings;
-  requireString(settings.name, "group name");
-  requireString(settings.start, "group start month");
-  if (!["none", "flat", "daily", "percent"].includes(settings.fineType)) throw new Error("Invalid fine type.");
-  ["amount", "dueDay", "graceDays", "fineValue", "welfareAmount"].forEach((key) => requireNumber(settings[key], `setting ${key}`));
-  data.members.forEach((member) => {
-    if (!record(member)) throw new Error("Invalid member record.");
-    requireString(member.id, "member ID");
-    requireString(member.name, "member name");
-    ["opening", "pledge"].forEach((key) => {
-      if (member[key] !== undefined) requireNumber(member[key], `member ${key}`);
-    });
-  });
-  data.payments.forEach((payment) => {
-    if (!record(payment)) throw new Error("Invalid payment record.");
-    requireString(payment.id, "payment ID");
-    requireString(payment.memberId, "payment member");
-    requireString(payment.month, "payment month");
-    requireString(payment.ref, "payment code");
-    requireNumber(payment.amount, "payment amount");
-  });
-  data.loans.forEach((loan) => {
-    if (!record(loan)) throw new Error("Invalid loan record.");
-    requireString(loan.id, "loan ID");
-    requireString(loan.memberId, "loan member");
-    requireString(loan.issued, "loan date");
-    ["principal", "rate", "months"].forEach((key) => requireNumber(loan[key], `loan ${key}`));
-    if (!["flat", "reducing"].includes(loan.type)) throw new Error("Invalid loan interest type.");
-    if (loan.repayments !== undefined && !Array.isArray(loan.repayments)) throw new Error("Invalid loan repayments.");
-    (loan.repayments || []).forEach((repayment) => {
-      if (!record(repayment)) throw new Error("Invalid loan repayment.");
-      requireNumber(repayment.amount, "repayment amount");
-      requireString(repayment.date, "repayment date");
-    });
-  });
-  data.payouts.forEach((payout) => {
-    if (!record(payout)) throw new Error("Invalid payout record.");
-    requireString(payout.id, "payout ID");
-    requireString(payout.memberId, "payout member");
-    requireString(payout.date, "payout date");
-    requireNumber(payout.amount, "payout amount");
-    if (!["round", "welfare"].includes(payout.kind)) throw new Error("Invalid payout type.");
-  });
-  data.rotation.forEach((id) => requireString(id, "rotation member ID"));
-  return normalize({ ...data, demo: false });
-}
-$("restoreBtn").onclick = () => {
-  if (state.demo) return backupError("Exit demo mode before restoring your own data.");
-  $("backupFile").click();
-};
-$("backupFile").onchange = async (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-  try {
-    const backup = validateBackup(JSON.parse(await file.text()));
-    if (!confirm("Restore this backup? It will replace all chama data in this browser.")) return;
-    localStorage.setItem(KEY, JSON.stringify(backup));
-    localStorage.removeItem(STASH);
-    state = backup;
-    fillSettings();
-    pending = [];
-    renderPreview();
-    render();
-    $("backupMsg").textContent = "Backup restored successfully.";
-    $("backupMsg").className = "good";
-  } catch (error) {
-    backupError(`Could not restore the backup: ${error.message}`);
-  } finally {
-    event.target.value = "";
-  }
-};
 $("resetBtn").onclick = () => {
-  if (state.demo) return exitDemo();
   if (confirm("Erase all members and payments? This cannot be undone.")) { state = blank(); save(); fillSettings(); render(); }
 };
-// ---------- Demo mode ----------
-// Demo data is a made-up chama. Switching it on stashes your own data first and switching it off
-// puts it back, so trying the demo can never overwrite real records.
+// Demo data so you (and anyone viewing your portfolio) can see the dashboard working
 function buildDemo() {
   const start = addMonths(thisMonth(), -5);
   const people = [["Wanjiku Kamau", "254712000001", 2000], ["Otieno Odhiambo", "254712000002", 3000], ["Achieng Atieno", "254712000003", 1500], ["Kiprono Koech", "254712000004", 2000], ["Mwende Mutua", "254712000005", 1000], ["Njeri Mwangi", "254712000006", 2500], ["Hassan Ali", "254712000007", 2000], ["Naliaka Wekesa", "254712000008", 1500]];
   state = blank();
-  state.demo = true;
   state.settings = { ...state.settings, name: "Donholm Vijana Chama", amount: 2000, start, dueDay: 5, graceDays: 2, fineType: "daily", fineValue: 50, welfareAmount: 100 };
   let n = 1;
   const ref = () => "DEMO" + String(n++).padStart(4, "0");
@@ -462,39 +353,8 @@ function buildDemo() {
   state.rotation = M.map((m) => m.id);
   for (let k = 0; k < 4; k++) { const ym = addMonths(start, k); state.payouts.push({ id: uid(), kind: "round", month: ym, memberId: M[k].id, amount: collected(ym), date: ym + "-28" }); }
   state.payouts.push({ id: uid(), kind: "welfare", memberId: M[3].id, amount: 1500, reason: "Family support", date: addMonths(start, 3) + "-20" });
+  save();
 }
-const hasData = (s) => !!s && (s.members.length > 0 || s.payments.length > 0 || !!s.settings.name);
-function enterDemo(keepView) {
-  if (!state.demo) localStorage.setItem(STASH, JSON.stringify(state));
-  buildDemo();
-  save(); fillSettings(); pending = []; renderPreview(); render();
-  if (keepView !== true) { location.hash = "overview"; showView(); }
-}
-function exitDemo(keepView) {
-  state = normalize(readJSON(STASH));
-  state.demo = false;
-  localStorage.removeItem(STASH);
-  save(); fillSettings(); pending = []; renderPreview(); render();
-  if (keepView !== true) { location.hash = "overview"; showView(); }
-}
-const toggleDemo = () => (state.demo ? exitDemo() : enterDemo());
-function renderDemoUi() {
-  const on = state.demo;
-  $("demoBar").hidden = !on;
-  $("demoToggle").setAttribute("aria-checked", String(on));
-  $("demoBtn").textContent = on ? "Turn off demo data" : "Turn on demo data";
-  $("resetBtn").hidden = on;
-  $("backupBtn").disabled = on;
-  $("restoreBtn").disabled = on;
-  $("backupFile").disabled = on;
-  $("emptyStart").hidden = on || hasData(state);
-  $("demoSafe").textContent = hasData(normalize(readJSON(STASH))) ? "Your own data is kept safe and comes back when you exit." : "Exit to get back to the empty app.";
-  if (on) $("groupName").textContent = state.settings.name + " (demo)";
-}
-$("demoToggle").onclick = toggleDemo;
-$("demoBtn").onclick = toggleDemo;
-$("exitDemoBar").onclick = () => exitDemo();
-$("startDemo").onclick = () => enterDemo();
 
 // ---------- Import: bring in records from WhatsApp, Word, Excel or a ledger book ----------
 let pending = [];
@@ -764,15 +624,43 @@ $("welfareForm").onsubmit = (e) => {
   e.target.reset(); save(); render();
 };
 
+// ---------- Switching between your chama and the demo ----------
+function updateModeUI() {
+  const demo = mode === "demo";
+  document.body.classList.toggle("demo", demo);
+  [["modeMine", !demo], ["modeDemo", demo]].forEach(([id, on]) => { $(id).classList.toggle("on", on); $(id).setAttribute("aria-pressed", String(on)); });
+  $("demoBanner").hidden = !demo;
+  $("demoBtn").textContent = demo ? "Back to my chama" : "View demo data";
+  $("resetBtn").hidden = demo;
+  document.title = demo ? "Chama Ledger (demo)" : "Chama Ledger";
+  $("onboard").hidden = demo || state.members.length > 0 || !!state.settings.name;
+}
+function setMode(next) {
+  if (next === mode) return;
+  mode = next;
+  localStorage.setItem(MODE_KEY, mode);
+  if (mode === "demo" && !localStorage.getItem(KEYS.demo)) { state = blank(); buildDemo(); } else state = loadState();
+  $("yeFrom").value = ""; $("yeTo").value = "";
+  fillSettings(); render(); renderCalc();
+  location.hash = "overview";
+  window.scrollTo(0, 0);
+}
+$("modeMine").onclick = () => setMode("mine");
+$("modeDemo").onclick = () => setMode("demo");
+$("demoBtn").onclick = () => setMode(mode === "demo" ? "mine" : "demo");
+$("backToMine").onclick = () => setMode("mine");
+$("resetDemo").onclick = () => { if (confirm("Reset the demo group to its starting data?")) { state = blank(); buildDemo(); fillSettings(); render(); } };
+$("onboardSetup").onclick = () => (location.hash = "settings");
+$("onboardDemo").onclick = () => setMode("demo");
+
 // ---------- Start ----------
+// Drop ?mode=... from the address so a refresh keeps whichever mode you switch to
+try { history.replaceState(null, "", location.pathname + location.hash); } catch (e) {}
+if (mode === "demo" && !localStorage.getItem(KEYS.demo)) buildDemo();
 $("viewMonth").value = thisMonth();
 $("pMonth").value = thisMonth();
 fillSettings();
+initYearEnd();
+initCalc();
 showView();
 render();
-// index.html links here with ?demo=1 (turn demo on) or ?demo=0 (turn it off). The parameter is removed afterwards
-// so refreshing the page does not repeat it.
-const demoParam = new URLSearchParams(location.search).get("demo");
-if (demoParam === "1" && !state.demo) enterDemo(true);
-else if (demoParam === "0" && state.demo) exitDemo(true);
-if (demoParam !== null) history.replaceState(null, "", location.pathname + location.hash);
