@@ -28,8 +28,11 @@ function loanSchedule({ principal, rate, months, type, start }) {
   return { rows, payment: pay, totalInterest, totalPaid: pay * months };
 }
 
-// Splits `income` between members and returns whole shillings that add up exactly to the income.
+// Splits `income` between members and returns whole shillings that add up exactly to the income (the engine does the work).
 function splitIncome(weights, income) {
+  return Engine.allocate(Math.round(income), weights);
+}
+function splitIncomeOld(weights, income) {
   const total = weights.reduce((a, b) => a + b, 0), n = weights.length;
   income = Math.round(income);
   if (!n || !total || income <= 0) return weights.map(() => 0);
@@ -40,101 +43,87 @@ function splitIncome(weights, income) {
 }
 const weightsFor = (method, savings, timeWeights) => (method === "equal" ? savings.map(() => 1) : method === "time" ? timeWeights : savings);
 
-// ---------- Year-end share-out (uses your chama's real records) ----------
+// ---------- Year-end share-out (uses your chama's real records and the engine) ----------
+const MODEL_OF = { savings: "savings_proportional", time: "time_weighted", equal: "equal" };
+const METHOD_OF = { savings_proportional: "savings", time_weighted: "time", equal: "equal" };
+
 function computeYearEnd(o) {
-  const model = { savings: "savings_proportional", time: "time_weighted", equal: "equal" }[o.method];
-  const policy = {
-    ...state.policy,
-    year_end_shareout: {
-      ...state.policy.year_end_shareout,
-      include_fines: o.useFines,
-      include_loan_interest: o.useInterest,
-      deduct_unpaid_loans: o.deduct,
-    },
-  };
-  const result = Engine.shareOut({ ...state, policy }, Number(o.year), {
-    model,
-    loanBalance: policy.year_end_shareout.deduct_unpaid_loans
-      ? (loan) => loan.issued.slice(0, 4) <= o.year ? loanStats(loan).balance : 0
-      : undefined,
+  const model = MODEL_OF[o.method];
+  const policy = { ...state.policy, year_end_shareout: { ...state.policy.year_end_shareout, model, include_fines: o.useFines, include_loan_interest: o.useInterest, include_welfare_surplus: o.useWelfare, deduct_unpaid_loans: o.deduct, return_savings: o.returnSavings } };
+  const r = Engine.shareOut({ ...state, policy }, Number(o.from.slice(0, 4)), {
+    model, from: o.from, to: o.to, extra: o.other - o.expenses,
+    loanBalance: o.deduct ? (loan) => (loan.issued.slice(0, 7) <= o.to ? loanStats(loan).balance : 0) : undefined,
   });
-  const netIncome = Math.round(result.pool.total + o.other - o.expenses);
-  const income = Math.max(0, netIncome);
-  const shares = Engine.allocate(income, result.rows.map((row) => row.basis));
-  const rows = result.rows.map((row, i) => {
-    const dues = o.deduct ? finesOwed(row.memberId) + welfareOwed(row.memberId) : 0;
-    const deduction = row.loan + dues;
-    return {
-      id: row.memberId,
-      name: row.name,
-      savings: row.savings,
-      pct: row.pct,
-      share: shares[i],
-      deduction,
-      net: (o.returnSavings ? row.savings : 0) + shares[i] - deduction,
-    };
+  const rows = r.rows.map((x) => {
+    const dues = o.deduct ? finesOwed(x.memberId) + welfareOwed(x.memberId) + mgrOwed(x.memberId) : 0;
+    const deduction = x.loan + dues;
+    // x.savings is already net of any merry-go-round pot taken from savings, so add it back to show the gross figure
+    return { id: x.memberId, name: x.name, savings: x.savings + x.advances, pots: x.advances, pct: x.pct, share: x.dividend, deduction, net: (o.returnSavings ? x.savings : 0) + x.dividend - deduction };
   });
-  const sum = (k) => rows.reduce((s, r) => s + r[k], 0);
-  return {
-    rows,
-    interest: Math.round(result.pool.interest),
-    fines: Math.round(result.pool.fines),
-    welfare: Math.round(result.pool.welfare),
-    expenses: Math.round(result.pool.expenses),
-    income,
-    notes: [
-      ...result.notes.filter((note) => !(o.other > o.expenses && note.startsWith("Nothing to share yet:"))),
-      ...(netIncome < 0 ? ["Additional expenses exceed available income, so there is nothing to share."] : []),
-      ...(o.other || o.expenses ? ["Other income and additional expenses entered here are estimates only; they are not saved to the ledger."] : []),
-    ],
-    totals: { savings: sum("savings"), share: sum("share"), deduction: sum("deduction"), net: sum("net") },
-  };
+  const sum = (k) => rows.reduce((s, x) => s + x[k], 0);
+  const notes = [...r.notes];
+  if (o.other || o.expenses) notes.push("Other income and additional expenses typed here are estimates only. They are not saved to the ledger.");
+  return { rows, interest: Math.round(r.pool.interest), fines: Math.round(r.pool.fines), welfare: Math.round(r.pool.welfare), spent: Math.round(r.pool.expenses), income: r.pool.total, notes, totals: { savings: sum("savings"), share: sum("share"), pots: sum("pots"), deduction: sum("deduction"), net: sum("net") } };
 }
 
 function yearEndOptions() {
   const n = (id) => Number($(id).value) || 0;
-  return { year: $("yeYear").value, method: $("yeMethod").value, useInterest: $("yeInterest").checked, useFines: $("yeFines").checked, other: n("yeOther"), expenses: n("yeExpenses"), returnSavings: $("yeReturn").checked, deduct: $("yeDeduct").checked };
+  return { from: $("yeFrom").value, to: $("yeTo").value, method: $("yeMethod").value, useInterest: $("yeInterest").checked, useFines: $("yeFines").checked, useWelfare: $("yeWelfare").checked, other: n("yeOther"), expenses: n("yeExpenses"), returnSavings: $("yeReturn").checked, deduct: $("yeDeduct").checked };
+}
+// The share-out choices are the chama's policy, so they are remembered for next year
+function loadYearEndControls() {
+  const s = state.policy.year_end_shareout;
+  $("yeMethod").value = METHOD_OF[s.model]; $("yeInterest").checked = s.include_loan_interest; $("yeFines").checked = s.include_fines;
+  $("yeWelfare").checked = s.include_welfare_surplus; $("yeReturn").checked = s.return_savings; $("yeDeduct").checked = s.deduct_unpaid_loans;
+}
+function saveYearEndPolicy() {
+  const o = yearEndOptions();
+  state.policy.year_end_shareout = { ...state.policy.year_end_shareout, model: MODEL_OF[o.method], include_loan_interest: o.useInterest, include_fines: o.useFines, include_welfare_surplus: o.useWelfare, return_savings: o.returnSavings, deduct_unpaid_loans: o.deduct };
+  save();
 }
 
 function yearEndSummary(r, o) {
-  const head = `${state.settings.name || "Chama"} year-end share-out, ${o.year}`;
+  const head = `${state.settings.name || "Chama"} year-end share-out, ${o.from} to ${o.to}`;
   const lines = r.rows.map((x) => `${x.name}: ${kes(x.net)}${x.net < 0 ? " (owes the group)" : ""}`);
   return [head, `Income shared: ${kes(r.income)}`, ...lines].join("\n");
 }
 
 function renderYearEnd() {
-  if (!$("yeYear").value) $("yeYear").value = new Date().getFullYear();
+  const year = new Date().getFullYear();
+  if (!$("yeFrom").value) $("yeFrom").value = `${year}-01`;
+  if (!$("yeTo").value) $("yeTo").value = `${year}-12`;
   const o = yearEndOptions();
-  if (!o.year || Number(o.year) < 2000 || Number(o.year) > 2100) { $("yeRows").replaceChildren(emptyRow(7, "Choose a year from 2000 to 2100.")); $("yeFoot").replaceChildren(); $("yeStats").replaceChildren(); return; }
+  if (!o.from || !o.to || o.from > o.to) { $("yeRows").replaceChildren(emptyRow(8, "Choose a start month that is not after the end month.")); $("yeFoot").replaceChildren(); $("yeStats").replaceChildren(); return; }
   const r = computeYearEnd(o), t = r.totals;
-  $("yeStats").replaceChildren(...[[kes(r.interest), "Loan interest counted"], [kes(r.fines), "Fines counted"], [kes(r.welfare), "Welfare surplus"], [kes(r.expenses), "Approved expenses"], [kes(r.income), "Income to share"], [kes(t.savings), "Total savings through year-end"], [kes(t.net), "Total paid out"]].map(([big, small]) => {
-    const d = el("div", undefined, "stat"); d.append(el("b", big), el("span", small)); return d;
-  }));
+  const cards = [[r.interest, "Loan interest counted"], [r.fines, "Fines counted"]];
+  if (o.useWelfare) cards.push([r.welfare, "Welfare surplus shared"]);
+  if (r.spent) cards.push([-r.spent, "Approved expenses taken off"]);
+  cards.push([r.income, "Income to share"], [t.savings, "Total savings in the period"], [t.net, "Total paid out"]);
+  $("yeStats").replaceChildren(...cards.map(([big, small]) => { const d = el("div", undefined, "stat"); d.append(el("b", kes(big)), el("span", small)); return d; }));
   $("yeRows").replaceChildren(...(r.rows.length ? r.rows.map((x) => {
     const tr = el("tr");
-    tr.append(cell(x.name), cell(kes(x.savings)), cell(Math.round(x.pct * 1000) / 10 + "%"), cell(kes(x.share)), cell(x.deduction ? "- " + kes(x.deduction) : "-"), cell(el("strong", kes(x.net), x.net < 0 ? "unpaid" : "")), cell(o.returnSavings ? "Savings + share" : "Share only"));
+    tr.append(cell(x.name), cell(kes(x.savings)), cell(Math.round(x.pct * 1000) / 10 + "%"), cell(kes(x.share)), cell(x.pots ? "- " + kes(x.pots) : "-"), cell(x.deduction ? "- " + kes(x.deduction) : "-"), cell(el("strong", kes(x.net), x.net < 0 ? "unpaid" : "")), cell(o.returnSavings ? "Savings + share" : "Share only"));
     return tr;
-  }) : [emptyRow(7, "Add members and payments to see a share-out.")]));
+  }) : [emptyRow(8, "Add members and payments to see a share-out.")]));
   const foot = el("tr");
-  foot.append(cell(el("strong", "Total")), cell(kes(t.savings)), cell(""), cell(kes(t.share)), cell(t.deduction ? "- " + kes(t.deduction) : "-"), cell(el("strong", kes(t.net))), cell(""));
+  foot.append(cell(el("strong", "Total")), cell(kes(t.savings)), cell(""), cell(kes(t.share)), cell(t.pots ? "- " + kes(t.pots) : "-"), cell(t.deduction ? "- " + kes(t.deduction) : "-"), cell(el("strong", kes(t.net))), cell(""));
   $("yeFoot").replaceChildren(foot);
-  $("yeNote").textContent = [
-    ...r.notes,
-    "Loan interest includes interest recognized in repayments during the selected year. Recorded approved expenses are taken from the ledger.",
-    o.returnSavings ? "Each member's savings are returned along with their share." : "Only the share of income is paid out; savings stay in the group.",
-  ].join(" ");
+  $("yeNote").textContent = [...r.notes,
+    "Loan interest counts as repayments come in. Approved expenses in the period come from the ledger. Deductions use loan, fine, welfare and merry-go-round balances as of today (for flat loans, the balance includes interest not yet earned).",
+    o.returnSavings ? "Each member's savings are returned along with their share." : "Only the share of income is paid out; savings stay in the group."].join(" ");
 }
 
 function initYearEnd() {
-  ["yeYear", "yeMethod", "yeInterest", "yeFines", "yeOther", "yeExpenses", "yeReturn", "yeDeduct"].forEach((id) => { $(id).oninput = $(id).onchange = renderYearEnd; });
+  loadYearEndControls();
+  ["yeFrom", "yeTo", "yeMethod", "yeInterest", "yeFines", "yeWelfare", "yeOther", "yeExpenses", "yeReturn", "yeDeduct"].forEach((id) => { $(id).oninput = $(id).onchange = () => { saveYearEndPolicy(); renderYearEnd(); }; });
   $("yePrint").onclick = () => window.print();
   $("yeCopy").onclick = () => copyText(yearEndSummary(computeYearEnd(yearEndOptions()), yearEndOptions()), $("yeCopy"));
   $("yeCsv").onclick = () => {
     const o = yearEndOptions(), r = computeYearEnd(o);
-    const lines = ["Member,Savings,SharePercent,ShareOfIncome,Deductions,NetPayout", ...r.rows.map((x) => [`"${x.name}"`, x.savings, Math.round(x.pct * 1000) / 10, x.share, x.deduction, x.net].join(","))];
+    const lines = ["Member,Savings,SharePercent,ShareOfIncome,PotTaken,Deductions,NetPayout", ...r.rows.map((x) => [`"${x.name}"`, x.savings, Math.round(x.pct * 1000) / 10, x.share, x.pots, x.deduction, x.net].join(","))];
     const a = el("a");
     a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
-    a.download = `year-end-${o.year}.csv`;
+    a.download = `year-end-${o.to}.csv`;
     a.click();
   };
 }

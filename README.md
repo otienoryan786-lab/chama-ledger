@@ -49,10 +49,15 @@ Chama Ledger replaces the notebook with one record that anyone in the group can 
 - **Late fines** with rules set per chama: due day, grace days, and a flat amount, an amount per day late, or a percent of the contribution.
 - **Welfare fund** with monthly collection, a balance and payouts with reasons.
 - **Loans with interest**, either flat or reducing balance, with instalments, repayments and the balance still owed.
-- **Expense approvals and a balanced ledger.** Configure treasurer-only, majority-vote or multiple-official approvals, then track approved expenses and account balances.
+
+**Group policy**
+- Each chama sets its own rules in **Settings** and on the **Year-end** page: merry-go-round as its own pot or paid from the contributions, how expenses are approved, and how the year-end share-out works. The app follows the policy instead of forcing one way.
+- **Templates:** start from a ready-made policy (small friends' chama, savings and investment group, formal group with votes) and adjust it.
+- **Expenses with approvals:** the treasurer records them directly, officials sign off (multi-signature), or members vote. Smaller amounts can skip approval. The person who recorded an expense cannot approve it, each expense shows who approved or declined it, and a WhatsApp message asks an approver to review. Approved expenses are taken off the year-end income automatically.
+- **A balanced ledger:** every payment, fine, loan, payout and expense is worked out as a balanced entry between named funds (savings, fines, welfare, the merry-go-round pot, loans owed, loan interest, expenses and cash). The **Funds** page shows each fund, checks that the books balance, and estimates the cash that should be in the account. Nothing is stored twice, so the ledger cannot drift out of step with the records.
 
 **Year-end and calculators**
-- **Year-end share-out** from your own records. Choose how your chama shares: by savings, by savings and time, or equally. It can add loan interest, fines and welfare surplus, subtract ledger expenses and unpaid dues, add other income, and return savings or only the share. Print it, copy it or download it as CSV.
+- **Year-end share-out** from your own records. Choose how your chama shares: by savings, by savings and time, or equally. It can add loan interest and fines, add other income, take off expenses and unpaid loans, and return savings or only the share. Print it, copy it or download it as CSV.
 - **Calculators** for any chama, with no setup: loan schedules (flat or reducing balance), late fines, merry-go-round plans, a quick year-end, savings goals and loan limits.
 
 **Merry-go-round**
@@ -86,11 +91,16 @@ cd chama-ledger
 # then open index.html in your browser
 ```
 
-The policy and accounting engine tests run with Node.js:
+## Tests
+
+The rules in `engine.js` (policy, ledger, share-out, expense approvals) have automated tests. They need only Node.js:
 
 ```bash
 node tests/engine.test.js
+# or: npm test
 ```
+
+The same tests run automatically on GitHub whenever code is pushed.
 
 ## How data is stored
 
@@ -98,7 +108,6 @@ Everything is saved in your browser's `localStorage`. There is no server, and no
 
 - Data lives on one device and one browser only.
 - Clearing browser data erases it, so use **Download payments (CSV)** to keep a copy.
-- Expense approvals are local records against member roles, not verified signatures; the app has no sign-in or identity verification.
 - Please don't commit real member names, phone numbers or exported CSV files to this repository.
 
 A shared database with logins is the next phase (see the roadmap).
@@ -127,16 +136,19 @@ Records imported from a table have no payment date, so they are treated as paid 
 chama-ledger/
 ├── index.html   Welcome page: what Chama Ledger is, who it is for, project status
 ├── welcome.css  Styling for the welcome page
-├── app.html     The app: dashboard, members, payments, loans, funds, expenses, import, settings
+├── app.html     The app: dashboard, members, payments, loans, funds, expenses, year-end, calculators, import, settings
 ├── style.css    Styling for the app, including the mobile layout
 ├── app.js       Logic: data, money rules, rendering, import, demo data
+├── engine.js    The rules: policy, balanced ledger, share-out and expense approvals (no page code, tested in Node)
+├── governance.js   Screens and helpers on top of the engine: roles, merry-go-round pot, Expenses, fund balances
 ├── calculators.js  Calculators and the year-end share-out
-├── engine.js   Policy rules, journal ledger, share-out and expense approvals
-├── tests/
-│   └── engine.test.js  Node tests for policy, ledger and approval rules
 ├── _headers     Security headers for hosts that support them
 ├── LICENSE      Terms of use
 ├── SECURITY.md  What must never be committed, and how to report problems
+├── tests/
+│   └── engine.test.js  Node tests for policy, ledger, share-out and approval rules
+├── package.json  Lets `npm test` run the tests
+├── .github/workflows/test.yml  Runs the tests on every push
 ├── logo.svg     Logo and favicon
 ├── docs/        Screenshots used in this README
 └── README.md
@@ -149,6 +161,7 @@ Plain HTML, CSS and JavaScript, with no frameworks or libraries. The charts are 
 - The repository contains **no secrets and no real member data**. A chama's records stay in the user's own browser. See [SECURITY.md](SECURITY.md).
 - Pages carry a Content-Security-Policy that blocks scripts and requests from anywhere but this site. `_headers` adds more protections on hosts that support it.
 - The code is published to be read, not reused. See [LICENSE](LICENSE): all rights reserved, with no copying, hosting or commercial use without permission.
+- Expense approvals are local records against member roles, not verified signatures. The app has no sign-in or identity verification yet, so approvals rely on honesty until logins arrive.
 - Front-end code can always be read by anyone who opens the app, so anything that must be trusted (logins, who sees which chama, M-Pesa) will live on a server in the next phase, with secrets kept in environment variables.
 
 ## Roadmap
@@ -158,11 +171,13 @@ Plain HTML, CSS and JavaScript, with no frameworks or libraries. The charts are 
 - [x] Own monthly amounts, late fines, welfare fund, loans and merry-go-round
 - [x] Welcome page that explains the project and links into the app
 - [x] Switch between your own records and demo data
+- [x] Group policy with templates: merry-go-round modes, expense approvals and remembered year-end choices
+- [x] Balanced ledger with fund balances and an estimated cash position
+- [x] Automated tests for the rules, run on every push
 - [ ] Fine cap setting
 - [ ] Loan limits and guarantors
 - [x] Year-end share-out of savings and interest
 - [x] Calculators for loans, fines, rotations, year-end, savings goals and loan limits
-- [x] Policy-driven expenses, approvals and ledger balances
 - [ ] Backend and database, so a whole group shares one record
 - [ ] Member logins and roles (treasurer, official, member)
 - [ ] M-Pesa STK push for contributions

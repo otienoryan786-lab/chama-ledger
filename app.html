@@ -73,11 +73,9 @@
           <form id="memberForm" class="row">
             <label>Name <input id="mName" required></label>
             <label>Phone (2547XXXXXXXX) <input id="mPhone" inputmode="numeric" pattern="254[0-9]{9}" required></label>
+            <label>Role <select id="mRole"><option value="member">Member</option><option value="chair">Chair</option><option value="secretary">Secretary</option><option value="treasurer">Treasurer</option><option value="official">Other official</option></select></label>
             <label>Own monthly amount (KES, optional) <input id="mPledge" type="number" min="0"></label>
             <label>Already paid before (KES, optional) <input id="mOpening" type="number" min="0"></label>
-            <label>Role
-              <select id="mRole"><option value="member">Member</option><option value="chair">Chair</option><option value="secretary">Secretary</option><option value="treasurer">Treasurer</option></select>
-            </label>
             <button>Add member</button>
           </form>
         </div>
@@ -95,7 +93,7 @@
           </div>
           <div class="scroll">
             <table>
-              <thead><tr><th>Member</th><th>Selected month</th><th>Total paid</th><th>Arrears</th><th>Fines + welfare due</th></tr></thead>
+              <thead><tr><th>Member</th><th>Selected month</th><th>Total paid</th><th>Arrears</th><th>Fines and other dues</th></tr></thead>
               <tbody id="rows"></tbody>
             </table>
           </div>
@@ -111,7 +109,8 @@
             <label>Member <select id="pMember" required></select></label>
             <label>For month <input id="pMonth" type="month" required></label>
             <label>Amount (KES) <input id="pAmount" type="number" min="1" required></label>
-            <label>Type <select id="pKind"><option value="contribution">Contribution</option><option value="fine">Late fine</option><option value="welfare">Welfare</option><option value="mgr">Merry-go-round contribution</option></select></label>
+            <label>Type <select id="pKind"><option value="contribution">Contribution</option><option value="fine">Late fine</option><option value="welfare">Welfare</option>
+              <option value="mgr">Merry-go-round pot</option></select></label>
             <label>Date paid <input id="pDate" type="date" required></label>
             <label>Paid by <select id="pMethod"><option value="mpesa">M-Pesa</option><option value="cash">Cash</option></select></label>
             <label>M-Pesa code <input id="pRef" placeholder="e.g. SJK4X9ABCD" required></label>
@@ -163,8 +162,13 @@
       <!-- FUNDS -->
       <section class="view" id="view-funds" hidden>
         <div class="panel">
+          <h2>Where the money is</h2>
+          <div class="stats" id="bucketStats"></div>
+          <p class="hint" id="bucketStatus"></p>
+        </div>
+        <div class="panel">
           <h2>Merry-go-round order</h2>
-          <p class="hint" id="mgrPolicyHint"></p>
+          <p class="hint">One member receives the pot each month, starting from the group's start month.</p>
           <ul class="list" id="orderList"></ul>
           <div class="row"><button id="shuffleBtn" class="ghost">Draw a random order</button></div>
         </div>
@@ -192,32 +196,32 @@
 
       <!-- EXPENSES -->
       <section class="view" id="view-expenses" hidden>
+        <div class="stats" id="exStats"></div>
         <div class="panel">
           <h2>Record an expense</h2>
-          <p class="hint">Expenses are posted to the ledger only after the required approvals. The approval rule comes from Settings. Approvals are recorded locally under member roles; this app has no sign-in or identity verification.</p>
+          <p class="hint" id="exRule"></p>
           <form id="expenseForm" class="row">
-            <label>Recorded by <select id="eMember" required></select></label>
-            <label>Amount (KES) <input id="eAmount" type="number" min="1" required></label>
-            <label>Date <input id="eDate" type="date" required></label>
-            <label>Description <input id="eDescription" required></label>
-            <label>Receipt reference (optional) <input id="eReceipt"></label>
-            <button>Save expense</button>
+            <label>What for <input id="exDesc" required></label>
+            <label>Recorded by <select id="exBy" required></select></label>
+            <label>Amount (KES) <input id="exAmount" type="number" min="1" required></label>
+            <label>Date <input id="exDate" type="date" required></label>
+            <label>Category
+              <select id="exCat"><option>Administration</option><option>Meeting</option><option>Welfare</option><option>Legal</option><option>Investment</option><option>Other</option></select>
+            </label>
+            <label>Receipt or reference <input id="exNote" placeholder="Receipt no. or M-Pesa code"></label>
+            <button>Submit expense</button>
           </form>
-          <p id="expenseMsg" role="status"></p>
+          <p id="exMsg" role="status"></p>
         </div>
         <div class="panel">
-          <h2>Expense approvals</h2>
+          <h2>Expenses</h2>
           <div class="scroll">
             <table>
-              <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Recorded by</th><th>Status</th><th>Approvals</th><th></th></tr></thead>
-              <tbody id="expenseRows"></tbody>
+              <thead><tr><th>Date</th><th>What for</th><th>Amount</th><th>Status</th><th>Approval</th><th>Decision</th><th></th></tr></thead>
+              <tbody id="exRows"></tbody>
             </table>
           </div>
-        </div>
-        <div class="panel">
-          <h2>Ledger balances</h2>
-          <div class="stats" id="ledgerStats"></div>
-          <p class="hint" id="ledgerStatus"></p>
+          <p class="hint">Approvals are recorded on this device by choosing who approved, so they rely on honesty. Ask each approver to confirm on WhatsApp, then record their decision here. Logins, planned for the next phase, will make approvals verifiable.</p>
         </div>
       </section>
 
@@ -225,9 +229,10 @@
       <section class="view" id="view-yearend" hidden>
         <div class="panel noprint">
           <h2>Year-end share-out</h2>
-          <p class="hint">This uses the ledger and your group's saved share-out rules. Nothing is saved or paid from this page.</p>
+          <p class="hint">Every chama shares out in its own way, so choose how yours does it. Nothing is saved or paid from this page. It only works out the figures.</p>
           <div class="row">
-            <label>Year <input id="yeYear" type="number" min="2000" max="2100"></label>
+            <label>From month <input id="yeFrom" type="month"></label>
+            <label>To month <input id="yeTo" type="month"></label>
             <label>Share income by
               <select id="yeMethod">
                 <option value="savings">Savings (a share follows what each member saved)</option>
@@ -239,11 +244,12 @@
           <div class="row checks">
             <label class="check"><input type="checkbox" id="yeInterest" checked> Add loan interest</label>
             <label class="check"><input type="checkbox" id="yeFines" checked> Add fines collected</label>
+            <label class="check"><input type="checkbox" id="yeWelfare"> Share the welfare surplus (otherwise it rolls over)</label>
             <label class="check"><input type="checkbox" id="yeReturn" checked> Return savings with the share-out</label>
             <label class="check"><input type="checkbox" id="yeDeduct" checked> Take off unpaid loans, fines and welfare</label>
           </div>
           <div class="row">
-            <label>Other income to share (KES) <input id="yeOther" type="number" min="0" value="0"></label>
+            <label>Other income to add (KES) <input id="yeOther" type="number" min="0" value="0"></label>
             <label>Additional expenses to take off (KES) <input id="yeExpenses" type="number" min="0" value="0"></label>
           </div>
         </div>
@@ -259,7 +265,7 @@
           </div>
           <div class="scroll">
             <table>
-              <thead><tr><th>Member</th><th>Savings</th><th>Share %</th><th>Income share</th><th>Deductions</th><th>Payout</th><th>Includes</th></tr></thead>
+              <thead><tr><th>Member</th><th>Savings</th><th>Share %</th><th>Income share</th><th>Pot taken</th><th>Deductions</th><th>Payout</th><th>Includes</th></tr></thead>
               <tbody id="yeRows"></tbody>
               <tfoot id="yeFoot"></tfoot>
             </table>
@@ -334,23 +340,35 @@
             </label>
             <label>Fine amount (KES or %) <input id="setFineValue" type="number" min="0" step="0.1"></label>
             <label>Welfare per member per month (KES, 0 = off) <input id="setWelfare" type="number" min="0"></label>
-            <h3>Group policy</h3>
-            <label>Year-end share-out
-              <select id="policyModel"><option value="savings_proportional">By savings</option><option value="time_weighted">By savings and time</option><option value="equal">Equal shares</option></select>
-            </label>
-            <label class="check"><input type="checkbox" id="policyIncludeFines" checked> Include fines in share-out</label>
-            <label class="check"><input type="checkbox" id="policyIncludeInterest" checked> Include loan interest in share-out</label>
-            <label class="check"><input type="checkbox" id="policyIncludeWelfare"> Include welfare surplus in share-out</label>
-            <label class="check"><input type="checkbox" id="policyDeductLoans" checked> Deduct unpaid loans</label>
-            <label class="check"><input type="checkbox" id="policySeparateMgr" checked> Merry-go-round is a separate fund</label>
-            <label>Merry-go-round contribution per member per month (KES) <input id="policyMgrAmount" type="number" min="0" value="0"></label>
-            <label>Expense approval
-              <select id="policyApproval"><option value="treasurer_only">Treasurer records expenses</option><option value="majority_vote">Majority vote</option><option value="multi_sig">Multiple officials</option></select>
-            </label>
-            <label>Signatories required <input id="policySignatories" type="number" min="1" max="10" value="2"></label>
-            <label>Approval threshold (KES) <input id="policyThreshold" type="number" min="0" value="0"></label>
-            <p class="hint" id="policyMsg" role="status"></p>
             <button id="saveSettings">Save settings</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Group policy</h2>
+          <p class="hint">How this chama handles the merry-go-round and expenses. The year-end choices are on the Year-end page and are remembered there. Changing a policy does not change past records.</p>
+          <div class="row">
+            <label>Start from a template <select id="setPreset"><option value="">Choose a template</option></select></label>
+            <button id="applyPreset" class="ghost">Apply template</button>
+          </div>
+          <p class="hint" id="policyMsg" role="status"></p>
+          <div class="row">
+            <label>Merry-go-round
+              <select id="setMgrMode">
+                <option value="independent">Independent: its own monthly pot, on top of savings</option>
+                <option value="integrated">Integrated: the pot is paid from the monthly contributions</option>
+              </select>
+            </label>
+            <label>Pot contribution per member per month (KES) <input id="setMgrAmount" type="number" min="0"></label>
+            <label>Expenses are approved by
+              <select id="setApproval">
+                <option value="treasurer_only">The treasurer records them directly</option>
+                <option value="multi_sig">Officials sign off (multi-signature)</option>
+                <option value="majority_vote">A majority vote of the members</option>
+              </select>
+            </label>
+            <label>Approvals needed (multi-signature) <input id="setSigs" type="number" min="1"></label>
+            <label>Approval needed only above (KES, 0 = always) <input id="setThreshold" type="number" min="0"></label>
+            <button id="savePolicy">Save policy</button>
           </div>
         </div>
         <div class="panel">
@@ -369,6 +387,7 @@
 
 <dialog id="memberDialog"></dialog>
 <script src="engine.js"></script>
+<script src="governance.js"></script>
 <script src="calculators.js"></script>
 <script src="app.js"></script>
 </body>
