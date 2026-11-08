@@ -64,10 +64,10 @@ const dayDiff = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5);
 const dueDate = (ym) => `${ym}-${String(Math.min(28, state.settings.dueDay || 5)).padStart(2, "0")}`;
 
 // Late fines, worked out month by month from the date each contribution was completed.
-function fineFor(id) {
-  const s = state.settings, pledge = pledgeOf(id);
-  if (!s.start || !pledge || s.fineType === "none" || !s.fineValue) return 0;
-  let total = 0;
+// One entry per late month, so a fine can be explained as well as totalled.
+function fineBreakdown(id) {
+  const s = state.settings, pledge = pledgeOf(id), out = [];
+  if (!s.start || !pledge || s.fineType === "none" || !s.fineValue) return out;
   for (let ym = s.start; ym <= thisMonth(); ym = addMonths(ym, 1)) {
     const limit = addDays(dueDate(ym), s.graceDays || 0);
     const pays = state.payments.filter((p) => p.memberId === id && kindOf(p) === "contribution" && p.month === ym)
@@ -75,10 +75,11 @@ function fineFor(id) {
     let sum = 0, doneOn = null;
     for (const p of pays) { sum += p.amount; if (sum >= pledge) { doneOn = p.paidOn || p.date; break; } }
     const late = dayDiff(limit, doneOn || today()); // not fully paid yet: the fine keeps growing until it is
-    if (late > 0) total += s.fineType === "flat" ? s.fineValue : s.fineType === "daily" ? s.fineValue * late : (pledge * s.fineValue) / 100;
+    if (late > 0) out.push({ month: ym, limit, doneOn, late, fine: s.fineType === "flat" ? s.fineValue : s.fineType === "daily" ? s.fineValue * late : (pledge * s.fineValue) / 100 });
   }
-  return Math.round(total);
+  return out;
 }
+const fineFor = (id) => Math.round(fineBreakdown(id).reduce((t, x) => t + x.fine, 0));
 const finesOwed = (id) => Math.max(0, fineFor(id) - sumKind(id, "fine"));
 const welfareOwed = (id) => Math.max(0, monthsDue() * (state.settings.welfareAmount || 0) - sumKind(id, "welfare"));
 const totalDue = (id) => arrears(id) + finesOwed(id) + welfareOwed(id) + mgrOwed(id);
@@ -121,7 +122,7 @@ const emptyRow = (cols, text) => {
 };
 
 // ---------- Navigation ----------
-const titles = { overview: "Overview", members: "Members", payments: "Payments", settings: "Settings", import: "Import records", loans: "Loans", funds: "Funds", yearend: "Year-end share-out", calc: "Calculators", expenses: "Expenses" };
+const titles = { overview: "Overview", members: "Members", payments: "Payments", settings: "Settings", import: "Import records", loans: "Loans", funds: "Funds", yearend: "Year-end share-out", calc: "Calculators", expenses: "Expenses", ledger: "Ledger" };
 function showView() {
   const v = titles[location.hash.slice(1)] ? location.hash.slice(1) : "overview";
   document.querySelectorAll(".view").forEach((s) => (s.hidden = s.id !== "view-" + v));
@@ -156,14 +157,14 @@ function renderOverview(month) {
   months.forEach((m, i) => {
     const h = (values[i] / max) * (base - top), x = gap + i * (bw + gap);
     chart.append(
-      svg("rect", { x, y: base - h, width: bw, height: h, rx: 3, fill: m === month ? "#f2a900" : "#12263a" }),
-      svg("text", { x: x + bw / 2, y: base + 20, "text-anchor": "middle", "font-size": 13, fill: "#5d6f7e" }, monthLabel(m)),
-      svg("text", { x: x + bw / 2, y: base - h - 6, "text-anchor": "middle", "font-size": 12, fill: "#12263a" }, values[i] ? Math.round(values[i] / 1000 * 10) / 10 + "k" : "")
+      svg("rect", { x, y: base - h, width: bw, height: h, rx: 3, fill: m === month ? "var(--accent)" : "var(--bar)" }),
+      svg("text", { x: x + bw / 2, y: base + 20, "text-anchor": "middle", "font-size": 13, fill: "var(--muted)" }, monthLabel(m)),
+      svg("text", { x: x + bw / 2, y: base - h - 6, "text-anchor": "middle", "font-size": 12, fill: "var(--ink)" }, values[i] ? Math.round(values[i] / 1000 * 10) / 10 + "k" : "")
     );
   });
   if (target) {
     const y = base - (target / max) * (base - top);
-    chart.append(svg("line", { x1: 0, x2: W, y1: y, y2: y, stroke: "#b3341f", "stroke-dasharray": "5 5" }), svg("text", { x: W - 2, y: y - 5, "text-anchor": "end", "font-size": 12, fill: "#b3341f" }, "Target"));
+    chart.append(svg("line", { x1: 0, x2: W, y1: y, y2: y, stroke: "var(--bad)", "stroke-dasharray": "5 5" }), svg("text", { x: W - 2, y: y - 5, "text-anchor": "end", "font-size": 12, fill: "var(--bad)" }, "Target"));
   }
   $("chart").replaceChildren(chart);
 
@@ -171,9 +172,9 @@ function renderOverview(month) {
   const pct = n ? Math.round((paidCount / n) * 100) : 0, C = 2 * Math.PI * 52;
   const ring = svg("svg", { viewBox: "0 0 140 140", role: "img", "aria-label": pct + " percent paid" });
   ring.append(
-    svg("circle", { cx: 70, cy: 70, r: 52, fill: "none", stroke: "#cfd9e0", "stroke-width": 14 }),
-    svg("circle", { cx: 70, cy: 70, r: 52, fill: "none", stroke: "#1f7a4d", "stroke-width": 14, "stroke-linecap": pct ? "round" : "butt", "stroke-dasharray": `${(pct / 100) * C} ${C}`, transform: "rotate(-90 70 70)" }),
-    svg("text", { x: 70, y: 78, "text-anchor": "middle", "font-size": 26, "font-weight": 800, fill: "#12263a" }, pct + "%")
+    svg("circle", { cx: 70, cy: 70, r: 52, fill: "none", stroke: "var(--line)", "stroke-width": 14 }),
+    svg("circle", { cx: 70, cy: 70, r: 52, fill: "none", stroke: "var(--ok)", "stroke-width": 14, "stroke-linecap": pct ? "round" : "butt", "stroke-dasharray": `${(pct / 100) * C} ${C}`, transform: "rotate(-90 70 70)" }),
+    svg("text", { x: 70, y: 78, "text-anchor": "middle", "font-size": 26, "font-weight": 800, fill: "var(--ink)" }, pct + "%")
   );
   $("ring").replaceChildren(ring);
 
@@ -182,7 +183,7 @@ function renderOverview(month) {
   $("topArrears").replaceChildren(...(top5.length ? top5.map(({ m, a }) => {
     const li = el("li");
     const open = el("button", m.name, "del");
-    open.style.color = "#12263a";
+    open.style.color = "var(--ink)";
     open.onclick = () => openMember(m.id);
     li.append(open, el("strong", kes(a)));
     return li;
@@ -248,7 +249,7 @@ function openMember(id) {
   d.replaceChildren(el("h2", m.name),
     el("p", `${m.phone ? "+" + m.phone + " · " : "No phone yet · "}pays ${kes(pledgeOf(id))} a month · paid ${kes(paidBy(id))}${m.opening ? ` (includes ${kes(m.opening)} brought forward)` : ""}`, "hint"),
     el("p", `Owes: contributions ${kes(arrears(id))} · fines ${kes(finesOwed(id))} · welfare ${kes(welfareOwed(id))}${mgrOwed(id) ? " · merry-go-round " + kes(mgrOwed(id)) : ""}`, "hint"),
-    plRow, hist, actions);
+    plRow, trustBlock(id), hist, actions);
   d.showModal();
 }
 
@@ -265,7 +266,7 @@ function renderPayments() {
   const rows = [...state.payments].reverse().filter((p) => f === "all" || p.memberId === f);
   $("history").replaceChildren(...(rows.length ? rows.map((p) => {
     const del = el("button", "Delete", "del");
-    del.onclick = () => { if (confirm("Delete this payment record?")) { state.payments = state.payments.filter((x) => x.id !== p.id); save(); render(); } };
+    del.onclick = () => { const snap = JSON.stringify(state); state.payments = state.payments.filter((x) => x.id !== p.id); save(); render(); toast("Payment deleted.", () => { state = JSON.parse(snap); save(); render(); }); };
     const tr = el("tr");
     tr.append(cell(p.paidOn || p.date), cell(memberName(p.memberId)), cell(p.month), cell(kes(p.amount)), cell(p.ref), cell(kindOf(p) + " · " + (p.source || "mpesa")), cell(del));
     return tr;
@@ -295,6 +296,9 @@ function render() {
   renderYearEnd();
   renderExpenses();
   renderBuckets();
+  renderHealth();
+  renderLedger();
+  animateStats();
 }
 
 // ---------- Events ----------
@@ -332,7 +336,7 @@ $("applyPreset").onclick = () => {
 $("memberForm").onsubmit = (e) => {
   e.preventDefault();
   state.members.push({ id: uid(), name: $("mName").value.trim(), phone: $("mPhone").value.trim(), role: $("mRole").value, opening: Number($("mOpening").value) || 0, pledge: Number($("mPledge").value) || 0 });
-  e.target.reset(); save(); render();
+  e.target.reset(); save(); render(); toast("Member added.");
 };
 $("payForm").onsubmit = (e) => {
   e.preventDefault();
@@ -342,7 +346,7 @@ $("payForm").onsubmit = (e) => {
   if (state.payments.some((p) => p.ref === ref)) return say("That M-Pesa code is already recorded.", false);
   if (!state.members.length) return say("Add a member first.", false);
   state.payments.push({ id: uid(), memberId: $("pMember").value, month: $("pMonth").value, amount: Number($("pAmount").value), ref, source: cash ? "cash" : "mpesa", kind: $("pKind").value, paidOn: $("pDate").value || today(), date: new Date().toISOString().slice(0, 10) });
-  save(); render(); say("Payment saved.", true);
+  save(); render(); say("Payment saved.", true); toast("Payment saved.");
   $("pRef").value = "";
 };
 $("exportBtn").onclick = () => {
@@ -623,7 +627,7 @@ function renderFunds(month) {
     const li = el("li"), btns = el("span");
     const move = (d) => () => { const j = i + d; if (j < 0 || j >= order.length) return; [order[i], order[j]] = [order[j], order[i]]; save(); render(); };
     const up = el("button", "Up", "del"), down = el("button", "Down", "del");
-    up.style.color = down.style.color = "#12263a"; up.onclick = move(-1); down.onclick = move(1);
+    up.style.color = down.style.color = "var(--ink)"; up.onclick = move(-1); down.onclick = move(1);
     btns.append(up, down);
     li.append(el("span", `${i + 1}. ${memberName(id)}`), btns);
     return li;
@@ -711,6 +715,9 @@ $("viewMonth").value = thisMonth();
 $("pMonth").value = thisMonth();
 fillSettings();
 Engine.PRESETS.forEach((p) => $("setPreset").append(new Option(p.label, p.id)));
+initUI();
+initLedger();
+initProjection();
 initYearEnd();
 initExpenses();
 initCalc();

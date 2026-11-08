@@ -1,0 +1,16 @@
+{
+  "name": "Chama Ledger",
+  "short_name": "Chama Ledger",
+  "description": "Contributions, fines, loans, welfare, expenses and year-end share-out for your chama. Works offline.",
+  "start_url": "app.html?mode=mine",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#12263a",
+  "theme_color": "#12263a",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

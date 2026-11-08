@@ -5,6 +5,6 @@
   "description": "Contribution, fines, loans, welfare, expenses and year-end share-out tracker for Kenyan chamas.",
   "license": "UNLICENSED",
   "scripts": {
-    "test": "node tests/engine.test.js"
+    "test": "node tests/engine.test.js && node tests/insights.test.js"
   }
 }

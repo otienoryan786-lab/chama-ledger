@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Member statement | Chama Ledger</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="statement.css">
+</head>
+<body>
+  <main id="sheet" class="sheet">
+    <header class="top">
+      <div class="brand"><img src="logo.svg" alt="" width="40" height="40"><span>Chama Ledger</span></div>
+      <button id="printBtn" class="noprint" type="button">Print or save as PDF</button>
+    </header>
+    <div id="body"><p class="note">Loading the statement...</p></div>
+  </main>
+  <script src="statement.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+:root{--paper:#eef2f4;--ink:#12263a;--muted:#5d6f7e;--line:#cfd9e0;--panel:#fff;--accent:#f2a900;--ok:#1f7a4d;--bad:#b3341f;--navy:#12263a}
+:root[data-theme=dark]{--paper:#0d1a27;--ink:#e7eef5;--muted:#9fb3c4;--line:#2a4157;--panel:#15273a;--navy:#2f5d8a;--ok:#4ec08a;--bad:#ff7b66;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.5 "IBM Plex Sans",system-ui,sans-serif}
+h1,h2,.brand,.big{font-family:"Bricolage Grotesque",system-ui,sans-serif}
+.sheet{max-width:760px;margin:0 auto;padding:1.2rem}
+.top{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:1rem}
+.brand{display:flex;align-items:center;gap:.6rem;font-weight:800;font-size:1.2rem}
+button{font:inherit;padding:.5rem 1rem;border:0;border-radius:4px;background:var(--navy);color:#fff;cursor:pointer}
+h1{margin:.2rem 0 0;font-size:clamp(1.6rem,5vw,2.2rem);line-height:1.1}
+h2{font-size:1.1rem;margin:1.6rem 0 .5rem}
+.sub{color:var(--muted);margin:.2rem 0 1rem}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem}
+.card{background:var(--panel);border:1px solid var(--line);border-left:6px solid var(--accent);padding:.7rem .9rem}
+.card .big{display:block;font-weight:800;font-size:1.4rem}
+.card span{color:var(--muted);font-size:.88rem}
+.bad{color:var(--bad)}.ok{color:var(--ok)}
+.months{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:.4rem}
+.m{border:1px solid var(--line);background:var(--panel);padding:.35rem .5rem;border-radius:4px;font-size:.85rem}
+.m b{display:block}
+.m.paid{border-color:var(--ok)}.m.short{border-color:var(--bad)}
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line)}
+th,td{text-align:left;padding:.5rem .6rem;border-bottom:1px solid var(--line);font-size:.92rem}
+th{color:var(--muted);font-weight:500}
+.scroll{overflow-x:auto}
+.note{color:var(--muted);font-size:.88rem;margin-top:1.6rem}
+@media print{.noprint{display:none!important}body{background:#fff;color:#000}.card,.m,table{border-color:#999}}

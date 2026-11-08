@@ -111,6 +111,7 @@ function renderYearEnd() {
   $("yeNote").textContent = [...r.notes,
     "Loan interest counts as repayments come in. Approved expenses in the period come from the ledger. Deductions use loan, fine, welfare and merry-go-round balances as of today (for flat loans, the balance includes interest not yet earned).",
     o.returnSavings ? "Each member's savings are returned along with their share." : "Only the share of income is paid out; savings stay in the group."].join(" ");
+  renderProjection(o);
 }
 
 function initYearEnd() {
@@ -337,3 +338,4 @@ function renderCalc(id) {
 }
 
 function initCalc() { renderCalc(); }
+

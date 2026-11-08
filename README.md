@@ -50,6 +50,18 @@ Chama Ledger replaces the notebook with one record that anyone in the group can 
 - **Welfare fund** with monthly collection, a balance and payouts with reasons.
 - **Loans with interest**, either flat or reducing balance, with instalments, repayments and the balance still owed.
 
+**Trust and transparency**
+- **Group health:** a score out of 100 and a short, plain-language list of what needs attention (members behind, late loans, expenses waiting). The scoring is tested.
+- **Every figure explained:** open a member and expand **Why is this the amount?** to see contributions, fines, welfare, the pot and loans worked out line by line.
+- **Ledger:** every payment, loan, payout and expense as a balanced entry. Search by name, code or date, filter by fund, and export it, so a dispute can be settled in a minute.
+- **Statements:** a printable statement for each member, and a **link** a member can open on their own phone with no account. The statement travels inside the link (after the `#`), so it is never sent to a server.
+- **Projection:** on the Year-end page, see what each member gets if the period ended today and what they get if members keep paying. Slide the payment rate to see the effect.
+
+**An app that feels like one**
+- **Works offline and installs** on a phone's home screen (a progressive web app).
+- **Quick search and actions** with `Ctrl+K` (or `/`, or the + button on a phone): jump to a page, open a member or record a payment.
+- Light, dark and automatic themes, figures that count up when they change, and **Undo** after deleting a payment.
+
 **Group policy**
 - Each chama sets its own rules in **Settings** and on the **Year-end** page: merry-go-round as its own pot or paid from the contributions, how expenses are approved, and how the year-end share-out works. The app follows the policy instead of forcing one way.
 - **Templates:** start from a ready-made policy (small friends' chama, savings and investment group, formal group with votes) and adjust it.
@@ -146,9 +158,17 @@ chama-ledger/
 ├── LICENSE      Terms of use
 ├── SECURITY.md  What must never be committed, and how to report problems
 ├── tests/
-│   └── engine.test.js  Node tests for policy, ledger, share-out and approval rules
+│   ├── engine.test.js    Node tests for policy, ledger, share-out and approval rules
+│   └── insights.test.js  Node tests for the health score and insights
 ├── package.json  Lets `npm test` run the tests
 ├── .github/workflows/test.yml  Runs the tests on every push
+├── insights.js  Group health score and insights (pure, tested)
+├── ui.js        Theme, quick search, toasts with undo, install and offline status
+├── trust.js     Group health panel, ledger, explanations, statements and projection
+├── statement.html, statement.js, statement.css  The member statement page
+├── theme.js     Applies the saved theme before the page draws
+├── manifest.webmanifest, sw.js, icons/  Install and offline support
+├── docs/COMPETITORS.md  Competitor research and where Chama Ledger is different
 ├── logo.svg     Logo and favicon
 ├── docs/        Screenshots used in this README
 └── README.md
@@ -162,6 +182,8 @@ Plain HTML, CSS and JavaScript, with no frameworks or libraries. The charts are 
 - Pages carry a Content-Security-Policy that blocks scripts and requests from anywhere but this site. `_headers` adds more protections on hosts that support it.
 - The code is published to be read, not reused. See [LICENSE](LICENSE): all rights reserved, with no copying, hosting or commercial use without permission.
 - Expense approvals are local records against member roles, not verified signatures. The app has no sign-in or identity verification yet, so approvals rely on honesty until logins arrive.
+- A statement link contains that member's figures inside the link. Anyone who has the link can read it, so send it only to the member. It is not signed, so it is a convenience copy and not proof.
+- Kenya's Data Protection Act, 2019 applies to anyone who holds members' personal data. Today the data stays on the user's own device. A server-based version will need a privacy notice, member consent and legal advice (see [docs/COMPETITORS.md](docs/COMPETITORS.md)).
 - Front-end code can always be read by anyone who opens the app, so anything that must be trusted (logins, who sees which chama, M-Pesa) will live on a server in the next phase, with secrets kept in environment variables.
 
 ## Roadmap
@@ -174,6 +196,9 @@ Plain HTML, CSS and JavaScript, with no frameworks or libraries. The charts are 
 - [x] Group policy with templates: merry-go-round modes, expense approvals and remembered year-end choices
 - [x] Balanced ledger with fund balances and an estimated cash position
 - [x] Automated tests for the rules, run on every push
+- [x] Group health, ledger search, explanations, statement links and projection
+- [x] Installable, offline-capable app with quick search and dark mode
+- [x] Competitor research ([docs/COMPETITORS.md](docs/COMPETITORS.md))
 - [ ] Fine cap setting
 - [ ] Loan limits and guarantors
 - [x] Year-end share-out of savings and interest

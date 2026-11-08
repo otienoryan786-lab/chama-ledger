@@ -21,6 +21,7 @@
         <a href="#features">What it does</a>
         <a href="#how">How it works</a>
         <a href="#why">Why it helps</a>
+        <a href="#compare">How it compares</a>
         <a href="#faq">FAQ</a>
         <a class="btn ghost small" href="app.html?mode=demo">Demo data</a>
         <a class="btn small" href="app.html?mode=mine">Open the app</a>
@@ -78,6 +79,11 @@
         <div><dt>Merry-go-round</dt><dd>Set the order or draw it at random. See who takes the pot each month, how big it is, and record each payout.</dd></div>
         <div><dt>Welfare fund</dt><dd>Collect a monthly amount, see the balance, and record payouts with the reason, so the group can see where welfare money goes.</dd></div>
         <div><dt>Loans with interest</dt><dd>Flat or reducing balance interest, a monthly instalment, repayments recorded as they arrive, and the balance still owed.</dd></div>
+        <div><dt>Group health at a glance</dt><dd>A score out of 100 and a short list of what needs attention, in plain words: who is behind, which loans are late, what is waiting for approval.</dd></div>
+        <div><dt>Every figure explained</dt><dd>Tap a member and see exactly why they owe what they owe, month by month. The ledger can be searched by name, code or date, so a dispute can be settled in a minute.</dd></div>
+        <div><dt>Statements members can open on their own phone</dt><dd>Send a member a link. It opens a clear statement with no account and no sign-in, and it can be printed or saved as a PDF.</dd></div>
+        <div><dt>What will I get at year-end?</dt><dd>See each member's payout if the year ended today, and what it becomes if everyone keeps paying. Slide the payment rate up and down to see the effect.</dd></div>
+        <div><dt>Works offline, installs like an app</dt><dd>It keeps working with no internet and can be added to a phone's home screen. Press Ctrl+K (or tap the button) to jump anywhere or record a payment fast. Light and dark themes included.</dd></div>
         <div><dt>Rules that fit your chama</dt><dd>Is the merry-go-round its own pot or paid from the contributions? Does the treasurer record expenses alone, or do officials sign off? Each chama sets its own policy, and the app follows it.</dd></div>
         <div><dt>Expenses with approvals</dt><dd>Record expenses directly, or require approvals from officials or a vote of members. Every expense shows who approved it, and approved expenses come off the year-end income automatically.</dd></div>
         <div><dt>Where the money is</dt><dd>Every payment, loan, payout and expense is a balanced entry between separate funds: savings, fines, welfare, the pot, loans and expenses. The app checks the books balance and estimates the cash that should be in the account.</dd></div>
@@ -130,20 +136,44 @@
 
     <section id="see" class="section tint">
       <h2>See it in action</h2>
-      <p class="lead">Loans, rounds, expenses and the year-end share-out in one place. These screens show demo data.</p>
+      <p class="lead">Members, loans, calculators, rounds and the year-end share-out in one place. These screens show demo data.</p>
       <div class="gallery">
         <figure><img src="docs/loans.png" alt="The loans page listing each loan with its instalment, repayments and balance" loading="lazy"><figcaption>Loans with interest: instalment, repayments and balance</figcaption></figure>
-        <figure><img src="docs/expenses.png" alt="The expenses page with approval status for each expense" loading="lazy"><figcaption>Expenses with approvals, so every shilling spent has a record</figcaption></figure>
+        <figure><img src="docs/members.png" alt="The members page listing each member's payments, arrears and fines" loading="lazy"><figcaption>Member payment status, arrears and fines at a glance</figcaption></figure>
+        <figure><img src="docs/calculators.png" alt="The calculators page showing a loan repayment schedule" loading="lazy"><figcaption>Calculators for loan schedules, late fines and savings goals</figcaption></figure>
         <figure><img src="docs/yearend.png" alt="The year-end page showing how savings and income are shared among members" loading="lazy"><figcaption>Year-end share-out, worked out for every member</figcaption></figure>
         <figure><img src="docs/funds.png" alt="The funds page with the merry-go-round order, the rounds table and the welfare fund" loading="lazy"><figcaption>Merry-go-round order, rounds and the welfare fund</figcaption></figure>
       </div>
       <div class="actions"><a class="btn dark" href="app.html?mode=demo">Explore the demo yourself</a></div>
     </section>
 
-    <section id="faq" class="section">
+    <section id="compare" class="section">
+      <h2>How it compares</h2>
+      <p class="lead">There are good chama platforms in Kenya, and some do things Chama Ledger does not yet. Here is an honest picture. Sources are in the project's <a href="https://github.com/otienoryan786-lab/chama-ledger/blob/main/docs/COMPETITORS.md">competitor research</a>.</p>
+      <div class="scroll">
+        <table class="compare four">
+          <thead><tr><th scope="col">What matters</th><th scope="col">Notebook, WhatsApp, Excel</th><th scope="col">Full chama platforms</th><th scope="col">Chama Ledger</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Needs an account or sign-up</th><td>No</td><td>Usually yes</td><td>No</td></tr>
+            <tr><th scope="row">Works offline</th><td>A notebook does; chats do not</td><td>Usually needs a connection</td><td>Yes, and installs on a phone</td></tr>
+            <tr><th scope="row">Where the data is kept</th><td>On paper, in a chat app or on one laptop</td><td>On the provider's servers</td><td>On your own device</td></tr>
+            <tr><th scope="row">Fits your chama's own rules</th><td>By hand</td><td>A set of standard options</td><td>Policy templates and settings for pot, approvals and share-out</td></tr>
+            <tr><th scope="row">Brings in your old records</th><td>Not applicable</td><td>Usually re-enter them</td><td>Paste WhatsApp messages or a Word or Excel table</td></tr>
+            <tr><th scope="row">Explains and proves every figure</th><td>Hard to do</td><td>Statements and reports</td><td>Step-by-step explanations and a searchable balanced ledger</td></tr>
+            <tr><th scope="row">Collects M-Pesa automatically</th><td>No</td><td>Many do</td><td>Not yet. You record payments; STK push is planned</td></tr>
+            <tr><th scope="row">Sends messages</th><td>You type each one</td><td>Many send SMS</td><td>WhatsApp messages ready to send in one tap</td></tr>
+            <tr><th scope="row">Member logins</th><td>No</td><td>Yes</td><td>Not yet. Members get a statement link</td></tr>
+            <tr><th scope="row">Cost</th><td>Free</td><td>Free tiers and per-member plans</td><td>Free to try</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="faq" class="section tint">
       <h2>Questions people ask</h2>
       <div class="faq">
-        <details><summary>Do I need to install anything?</summary><p>No. It runs in the browser on a phone or a computer.</p></details>
+        <details><summary>Do I need to install anything?</summary><p>No. It runs in the browser on a phone or a computer. If you like, you can add it to your phone's home screen and it will keep working with no internet.</p></details>
+        <details><summary>How is this different from Chamasoft and other chama apps?</summary><p>Those platforms are strong at collecting M-Pesa payments, sending SMS and giving each member a login, and they hold your data on their servers. Chama Ledger works the other way round for now: it needs no account, works offline, keeps data on your device, adapts to your chama's own rules, imports your old WhatsApp and Word records, and explains every figure. Payment collection and logins are on the roadmap.</p></details>
         <details><summary>Can I try it without entering my chama's details?</summary><p>Yes. Switch to the demo data at any time. It is a made-up group kept separate from your records, so nothing of yours is touched, and you can switch back with one click.</p></details>
         <details><summary>Where is my chama's data kept?</summary><p>On your own device, in your browser. Nothing is sent to a server. Download the payments as a CSV from Settings to keep a backup.</p></details>
         <details><summary>Can I bring my existing records?</summary><p>Yes. Paste a table from Word or Excel, or payment messages from WhatsApp, and check the preview before anything is saved.</p></details>

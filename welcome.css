@@ -114,3 +114,8 @@ footer a{color:#fff}
 .faq details[open] summary::after{content:"\2212"}
 .faq details p{margin:0;padding:0 1.2rem 1rem;color:var(--muted)}
 footer .footlinks a{margin:0 .15rem}
+
+.compare.four thead th:nth-child(3){background:#3b536b}
+.compare.four td:last-child{font-weight:500}
+.compare.four{min-width:780px}
+.compare.four thead th:nth-child(2){background:#4a6178}

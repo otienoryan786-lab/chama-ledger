@@ -16,3 +16,7 @@
 ## Reporting a vulnerability
 
 Please do not open a public issue for a security problem. Use the **Report a vulnerability** button under the repository's **Security** tab (private reporting), and describe what you found and how to reproduce it.
+
+## Statement links
+
+A member statement link carries the member's figures inside the link (after the `#`), so nothing is sent to a server when it is opened. Anyone who holds the link can read it. Send it only to the member concerned, and remember it is an unsigned copy made on the date shown.

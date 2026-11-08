@@ -10,6 +10,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#12263a">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <script src="theme.js"></script>
 </head>
 <body>
 <div class="app">
@@ -22,6 +26,7 @@
       <button data-view="loans">Loans</button>
       <button data-view="funds">Funds</button>
       <button data-view="expenses">Expenses</button>
+      <button data-view="ledger">Ledger</button>
       <button data-view="yearend">Year-end</button>
       <button data-view="calc">Calculators</button>
       <button data-view="import">Import</button>
@@ -34,6 +39,10 @@
       <div><h1 id="pageTitle">Overview</h1><p id="groupName"></p></div>
       <div class="top-right">
         <a class="homelink" href="index.html">&larr; Welcome page</a>
+        <button type="button" id="searchBtn" class="ghost sm" title="Search or jump (Ctrl+K)">Search <kbd>Ctrl K</kbd></button>
+        <button type="button" id="themeBtn" class="ghost sm"></button>
+        <button type="button" id="installBtn" class="sm" hidden>Install app</button>
+        <span id="netPill" class="pill" hidden>Offline: saved on this device</span>
         <div class="mode" role="group" aria-label="Which data to show">
           <button type="button" id="modeMine">My chama</button>
           <button type="button" id="modeDemo">Demo data</button>
@@ -56,6 +65,7 @@
           <div class="row"><button type="button" id="onboardSetup">Set up my chama</button><button type="button" id="onboardDemo" class="ghost">View demo data</button></div>
         </div>
         <div class="stats" id="stats"></div>
+        <div class="panel" id="health"><h2>Group health</h2><div id="healthBox" class="healthgrid"></div></div>
         <div class="grid2">
           <div class="panel"><h2>Collections, last 6 months</h2><div id="chart"></div></div>
           <div class="panel"><h2>Paid in the selected month</h2><div id="ring"></div></div>
@@ -225,6 +235,32 @@
         </div>
       </section>
 
+      <!-- LEDGER -->
+      <section class="view" id="view-ledger" hidden>
+        <div class="panel">
+          <h2>Ledger</h2>
+          <p class="hint">Every payment, loan, payout and expense as a balanced entry between funds. To settle a question, search a name, a code or a date.</p>
+          <div class="row">
+            <label>Search <input id="lgSearch" placeholder="Name, code or note"></label>
+            <label>Member <select id="lgMember"></select></label>
+            <label>Fund <select id="lgFund"></select></label>
+            <label>From <input id="lgFrom" type="date"></label>
+            <label>To <input id="lgTo" type="date"></label>
+            <button id="lgCsv" class="ghost" type="button">Download CSV</button>
+          </div>
+        </div>
+        <div class="panel">
+          <p class="hint" id="lgStatus"></p>
+          <div class="scroll">
+            <table>
+              <thead><tr><th>Date</th><th>What happened</th><th>Member</th><th>Debit</th><th>Credit</th></tr></thead>
+              <tbody id="lgRows"></tbody>
+            </table>
+          </div>
+          <div class="row"><button id="lgMore" class="ghost" type="button" hidden></button></div>
+        </div>
+      </section>
+
       <!-- YEAR-END -->
       <section class="view" id="view-yearend" hidden>
         <div class="panel noprint">
@@ -254,6 +290,15 @@
           </div>
         </div>
         <div class="stats" id="yeStats"></div>
+        <div class="panel noprint" id="prBox">
+          <h2>What will each member get?</h2>
+          <label class="check"><input type="checkbox" id="prEnable"> Project to the end of the period</label>
+          <div id="prControls" hidden>
+            <label>If members pay <output id="prOut">100%</output> of their monthly amount <input type="range" id="prRate" min="50" max="110" step="5" value="100"></label>
+            <div id="prTable"></div>
+          </div>
+          <p class="hint" id="prNote"></p>
+        </div>
         <div class="panel">
           <div class="row between">
             <h2>Who receives what</h2>
@@ -386,9 +431,19 @@
 </div>
 
 <dialog id="memberDialog"></dialog>
+<dialog id="palette" class="pal" aria-label="Quick actions">
+  <input id="palInput" placeholder="Type a page, a member or an action" autocomplete="off" aria-label="Search">
+  <ul id="palList" role="listbox"></ul>
+  <p class="hint">Up and down to move, Enter to choose, Esc to close</p>
+</dialog>
+<div id="toasts" class="toasts" aria-live="polite"></div>
+<button id="fab" class="fab" type="button" aria-label="Search or jump">+</button>
 <script src="engine.js"></script>
+<script src="insights.js"></script>
 <script src="governance.js"></script>
 <script src="calculators.js"></script>
+<script src="ui.js"></script>
+<script src="trust.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
