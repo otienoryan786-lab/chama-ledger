@@ -34,6 +34,7 @@ Researched in November 2026 from public pages: app-store listings, the products'
 | Records are trapped in WhatsApp, Word and notebooks | **Imports** pasted WhatsApp or M-Pesa messages and tables from Word or Excel, with a preview |
 | "Trust me" statements | **Explains every figure** ("Why is this the amount?"), keeps a **balanced, searchable ledger** and shows a health score with plain-language insights |
 | Members cannot check their own record without a login | A **statement link** any member can open on their own phone, with no account |
+| Meetings are run on paper and the fines are argued about | An **agenda suggested from the books**, a register with a live **quorum** check, **attendance fines** from the group's own rules, minutes, action items and matters arising |
 | Year-end is a nasty surprise | A **projection** of what each member will get if the year ended today, and what they will get if members keep paying |
 | Spreadsheets cannot be tested | The rules are **automatically tested** on every change |
 
@@ -44,12 +45,12 @@ Being honest about this shapes the roadmap:
 - **Automatic M-Pesa collection and payment matching.** Chama Ledger records payments; it does not take them yet.
 - **SMS and push notifications.** Chama Ledger opens WhatsApp messages for you to send in one tap.
 - **Real member logins**, so each official can approve from their own phone.
-- **Meetings:** agendas, minutes and attendance fines.
+- **Meeting invitations by SMS or push, and video or online meetings.** Chama Ledger now covers agendas, register, quorum, attendance fines, minutes and action items, but invitations are a message you copy and send.
 - **Store-listed mobile apps and customer support.**
 
 ## What this means for the roadmap
 
 1. A small backend with logins and roles, so approvals become verifiable and members can see their records in real time.
 2. M-Pesa STK push and payment matching, with automatic confirmation.
-3. Meetings: attendance, attendance fines and printable minutes.
+3. Meeting invitations and reminders sent automatically (the meetings themselves are built).
 4. A privacy notice, consent records and a data-protection review before any member data is held on a server.
