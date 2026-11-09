@@ -37,6 +37,12 @@
     s.loans.filter((l) => l.behindBy > 0).slice(0, 3).forEach((l) => out.push({ level: "warn", text: `${l.name}'s loan is ${money(l.behindBy)} behind schedule.`, view: "loans" }));
     if (s.savings > 0 && s.loansOut / s.savings > 0.8) out.push({ level: "warn", text: `Loans out are ${Math.round((s.loansOut / s.savings) * 100)}% of savings, so little is left in reserve.`, view: "loans" });
     if (s.pending && s.pending.count) out.push({ level: "info", text: `${s.pending.count} expense${s.pending.count > 1 ? "s (" + money(s.pending.amount) + ") are" : " (" + money(s.pending.amount) + ") is"} waiting for approval.`, view: "expenses" });
+    const mt = s.meeting;
+    if (mt && !mt.quorumMet) out.push({ level: "warn", text: `The last meeting (${mt.date}) did not reach quorum: ${mt.attended} of ${mt.total} attended.`, view: "meetings" });
+    if (s.actions && s.actions.overdue > 0) out.push({ level: "warn", text: `${s.actions.overdue} action item${s.actions.overdue > 1 ? "s are" : " is"} overdue from earlier meetings.`, view: "meetings" });
+    else if (s.actions && s.actions.open > 0) out.push({ level: "info", text: `${s.actions.open} action item${s.actions.open > 1 ? "s" : ""} from meetings ${s.actions.open > 1 ? "are" : "is"} still open.`, view: "meetings" });
+    if (s.lowAttendance && s.lowAttendance.length) out.push({ level: "info", text: `${list(s.lowAttendance)} ${s.lowAttendance.length > 1 ? "have" : "has"} attended less than half of recent meetings.`, view: "meetings" });
+    if (s.daysSinceMeeting !== null && s.daysSinceMeeting !== undefined && s.daysSinceMeeting > 60) out.push({ level: "info", text: `No meeting has been held for ${s.daysSinceMeeting} days.`, view: "meetings" });
     if (!s.booksBalanced) out.push({ level: "bad", text: "The books are out of balance. Check the Ledger page for entries that look wrong.", view: "ledger" });
     else if (s.cashNegative) out.push({ level: "warn", text: "Recorded loans, payouts and expenses are more than the money recorded coming in. Look for missing payments.", view: "ledger" });
     if (!behind.length && !unpaid.length) out.push({ level: "good", text: `Everyone is paid up for ${s.monthLabel}.` });

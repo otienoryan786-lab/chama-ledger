@@ -26,6 +26,7 @@
       <button data-view="loans">Loans</button>
       <button data-view="funds">Funds</button>
       <button data-view="expenses">Expenses</button>
+      <button data-view="meetings">Meetings</button>
       <button data-view="ledger">Ledger</button>
       <button data-view="yearend">Year-end</button>
       <button data-view="calc">Calculators</button>
@@ -235,6 +236,33 @@
         </div>
       </section>
 
+      <!-- MEETINGS -->
+      <section class="view" id="view-meetings" hidden>
+        <div class="stats" id="mtStats"></div>
+        <div class="panel">
+          <h2>Schedule a meeting</h2>
+          <form id="meetingForm" class="row">
+            <label>Type
+              <select id="mtType"><option value="monthly">Monthly meeting</option><option value="agm">Annual general meeting</option><option value="special">Special meeting</option></select>
+            </label>
+            <label>Date <input id="mtDate" type="date" required></label>
+            <label>Time <input id="mtTime" type="time"></label>
+            <label>Venue <input id="mtVenue" placeholder="e.g. the chair's home, or online"></label>
+            <button>Create meeting</button>
+          </form>
+        </div>
+        <div class="panel">
+          <h2>Meetings</h2>
+          <div class="scroll">
+            <table>
+              <thead><tr><th>Date</th><th>Meeting</th><th>Status</th><th>Attendance</th><th></th></tr></thead>
+              <tbody id="mtRows"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="mtDetail"></div>
+      </section>
+
       <!-- LEDGER -->
       <section class="view" id="view-ledger" hidden>
         <div class="panel">
@@ -413,6 +441,12 @@
             </label>
             <label>Approvals needed (multi-signature) <input id="setSigs" type="number" min="1"></label>
             <label>Approval needed only above (KES, 0 = always) <input id="setThreshold" type="number" min="0"></label>
+            <label>Fine for being absent (KES) <input id="setAbsentFine" type="number" min="0"></label>
+            <label>Fine for being late (KES) <input id="setLateFine" type="number" min="0"></label>
+            <label>An apology is
+              <select id="setApology"><option value="excused">Excused (no fine)</option><option value="fined">Fined like an absence</option></select>
+            </label>
+            <label>Quorum (% of members) <input id="setQuorum" type="number" min="1" max="100"></label>
             <button id="savePolicy">Save policy</button>
           </div>
         </div>
@@ -437,6 +471,7 @@
   <p class="hint">Up and down to move, Enter to choose, Esc to close</p>
 </dialog>
 <div id="toasts" class="toasts" aria-live="polite"></div>
+<div id="printArea" class="printarea"></div>
 <button id="fab" class="fab" type="button" aria-label="Search or jump">+</button>
 <script src="engine.js"></script>
 <script src="insights.js"></script>
@@ -444,6 +479,7 @@
 <script src="calculators.js"></script>
 <script src="ui.js"></script>
 <script src="trust.js"></script>
+<script src="meetings.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

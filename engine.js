@@ -13,7 +13,7 @@
   // ---------- 1. Policy ----------
   const MODELS = ["equal", "savings_proportional", "time_weighted"];
   const APPROVALS = ["treasurer_only", "majority_vote", "multi_sig"];
-  const OFFICIALS = ["chair", "secretary", "treasurer"];
+  const OFFICIALS = ["chair", "secretary", "treasurer", "official"];
 
   const defaultPolicy = () => ({
     version: 1,
@@ -23,6 +23,7 @@
       include_loan_interest: true,
       include_welfare_surplus: false, // false: welfare rolls over to next year
       deduct_unpaid_loans: true,
+      return_savings: true, // false: only the share of income is paid out; savings stay in the group
     },
     merry_go_round: {
       is_separate_fund: true, // true: its own pot on top of savings. false: an advance taken from savings
@@ -33,6 +34,12 @@
       approval_policy: "treasurer_only", // treasurer_only | majority_vote | multi_sig
       signatories_required: 2,
       approval_threshold: 0, // expenses up to this amount post straight away (0 = no limit)
+    },
+    meetings: {
+      absent_fine: 0, // charged to a member marked absent (0 = no fine)
+      late_fine: 0, // charged to a member marked late
+      apology_excused: true, // true: a member who sent an apology pays nothing
+      quorum_percent: 50, // share of members who must attend for a meeting to count
     },
   });
 
@@ -54,10 +61,10 @@
       problems.push(`"${key}" must be a JSON object.`);
       return null;
     };
-    const ye = section("year_end_shareout"), mg = section("merry_go_round"), ex = section("expense_governance");
+    const ye = section("year_end_shareout"), mg = section("merry_go_round"), ex = section("expense_governance"), mt = section("meetings");
     if (ye) {
       if ("model" in ye) { if (MODELS.includes(ye.model)) p.year_end_shareout.model = ye.model; else problems.push(`Unknown share-out model "${ye.model}". Use ${MODELS.join(", ")}.`); }
-      ["include_fines", "include_loan_interest", "include_welfare_surplus", "deduct_unpaid_loans"].forEach((k) => bool(ye, k, p.year_end_shareout));
+      ["include_fines", "include_loan_interest", "include_welfare_surplus", "deduct_unpaid_loans", "return_savings"].forEach((k) => bool(ye, k, p.year_end_shareout));
     }
     if (mg) {
       bool(mg, "is_separate_fund", p.merry_go_round);
@@ -68,6 +75,11 @@
       if ("approval_policy" in ex) { if (APPROVALS.includes(ex.approval_policy)) p.expense_governance.approval_policy = ex.approval_policy; else problems.push(`Unknown approval_policy "${ex.approval_policy}". Use ${APPROVALS.join(", ")}.`); }
       if ("signatories_required" in ex) { if (Number.isInteger(ex.signatories_required) && ex.signatories_required >= 1 && ex.signatories_required <= 10) p.expense_governance.signatories_required = ex.signatories_required; else problems.push('"signatories_required" must be a whole number from 1 to 10.'); }
       if ("approval_threshold" in ex) { if (isMoney(ex.approval_threshold)) p.expense_governance.approval_threshold = ex.approval_threshold; else problems.push('"approval_threshold" must be a number, 0 or more.'); }
+    }
+    if (mt) {
+      ["absent_fine", "late_fine"].forEach((k) => { if (k in mt) { if (isMoney(mt[k])) p.meetings[k] = mt[k]; else problems.push(`"${k}" must be a number, 0 or more.`); } });
+      bool(mt, "apology_excused", p.meetings);
+      if ("quorum_percent" in mt) { if (typeof mt.quorum_percent === "number" && mt.quorum_percent >= 1 && mt.quorum_percent <= 100) p.meetings.quorum_percent = mt.quorum_percent; else problems.push('"quorum_percent" must be a number from 1 to 100.'); }
     }
     return { policy: p, problems };
   }
@@ -174,39 +186,45 @@
     return base;
   }
 
-  // opts: { model, loanBalance(loan) } . Savings are counted up to December of `year`.
-  // Time-weighted: money saved for January counts 12 times, December once. Savings from before the
-  // year (and balances brought forward) count the full 12.
+  const monthsBetween = (a, b) => (Number(b.slice(0, 4)) - Number(a.slice(0, 4))) * 12 + (Number(b.slice(5, 7)) - Number(a.slice(5, 7)));
+
+  // opts: { model, loanBalance(loan), from, to, extra }
+  //   from/to  "YYYY-MM": the chama's own financial year. Default January to December of `year`.
+  //   extra    income (or, if negative, expense) the person adds by hand, counted before the pool is worked out.
+  // Time-weighted: money saved in the first month of the period counts for every month, the last month once.
+  // Savings from before the period (and balances brought forward) count for the whole period.
   function shareOut(s, year, opts) {
     opts = opts || {};
     const pol = s.policy.year_end_shareout, model = MODELS.includes(opts.model) ? opts.model : pol.model;
-    const first = `${year}-01`, last = `${year}-12`, d1 = `${year}-01-01`, d2 = `${year}-12-31`;
+    const first = opts.from || `${year}-01`, last = opts.to || `${year}-12`, d1 = `${first}-01`, d2 = `${last}-31`;
+    const span = monthsBetween(first, last) + 1;
     const J = journal(s);
-    const weight = (month) => (!month || month < first ? 12 : 13 - Number(month.slice(5, 7)));
+    const weight = (month) => (!month || month < first ? span : monthsBetween(month, last) + 1);
     const rows = s.members.map((m) => {
-      let savings = 0, weighted = 0;
+      let savings = 0, weighted = 0, advances = 0;
       J.forEach((e) => {
         if (e.memberId !== m.id) return;
         if (e.month && e.month > last) return;
         e.lines.forEach((l) => {
           let amt = 0;
           if (l.acct === "savings") amt = l.cr - l.dr;
-          if (l.acct === "mgr_advances") amt = -(l.dr - l.cr); // already taken out of their savings
+          if (l.acct === "mgr_advances") { amt = -(l.dr - l.cr); advances += l.dr - l.cr; } // already taken out of their savings
           if (!amt) return;
           savings += amt; weighted += amt * weight(e.kind === "opening" ? "" : e.month);
         });
       });
-      return { memberId: m.id, name: m.name, savings, weighted: Math.max(0, weighted), basis: 0, pct: 0, dividend: 0, loan: 0, total: 0 };
+      return { memberId: m.id, name: m.name, savings, advances, weighted: Math.max(0, weighted), basis: 0, pct: 0, dividend: 0, loan: 0, total: 0 };
     });
-    const inYear = (e) => e.date >= d1 && e.date <= d2;
-    const yb = balances(J, inYear);
+    const inPeriod = (e) => e.date >= d1 && e.date <= d2;
+    const yb = balances(J, inPeriod);
     const parts = {
       interest: pol.include_loan_interest ? yb.loan_interest : 0,
       fines: pol.include_fines ? yb.fines : 0,
       welfare: pol.include_welfare_surplus ? Math.max(0, balances(J, (e) => e.date <= d2).welfare) : 0,
       expenses: yb.expenses,
+      extra: Number(opts.extra) || 0,
     };
-    const raw = parts.interest + parts.fines + parts.welfare - parts.expenses;
+    const raw = parts.interest + parts.fines + parts.welfare - parts.expenses + parts.extra;
     const pool = Math.max(0, Math.round(raw));
     rows.forEach((r) => { r.basis = model === "equal" ? 1 : model === "time_weighted" ? r.weighted : Math.max(0, r.savings); });
     const bs = rows.reduce((t, r) => t + r.basis, 0);
@@ -220,15 +238,99 @@
     });
     const notes = [];
     if (!s.members.length) notes.push("Add members to see a share-out.");
-    else if (raw < 0) notes.push("Expenses are bigger than the income this year, so there is nothing to share. The shortfall is not charged to members.");
-    else if (!pool) notes.push("Nothing to share yet: no fines, loan interest or welfare surplus is counted for this year.");
+    else if (raw < 0) notes.push("Expenses are bigger than the income in this period, so there is nothing to share. The shortfall is not charged to members.");
+    else if (!pool) notes.push("Nothing to share yet: no fines, loan interest or welfare surplus is counted for this period.");
     if (s.members.length && !bs) notes.push("Nobody has any savings counted yet, so the pool cannot be divided.");
-    if (model === "time_weighted") notes.push("Time-weighted: KES 1,000 saved for January counts 12 times, for December once. Earlier money earns more.");
+    if (model === "time_weighted") notes.push("Time-weighted: KES 1,000 saved in the first month counts for the whole period, in the last month once. Earlier money earns more.");
     if (model === "equal") notes.push("Equal split: the pool is divided by the number of members, whatever they saved.");
     if (model === "savings_proportional") notes.push("By savings: each member's share of the pool matches their share of everyone's savings.");
     const cash = balances(J, (e) => e.date <= d2).cash;
-    const totals = rows.reduce((t, r) => ({ savings: t.savings + r.savings, dividend: t.dividend + r.dividend, loan: t.loan + r.loan, total: t.total + r.total }), { savings: 0, dividend: 0, loan: 0, total: 0 });
-    return { year, model, pool: { ...parts, total: pool }, rows, totals, notes, cash };
+    const totals = rows.reduce((t, r) => ({ savings: t.savings + r.savings, advances: t.advances + r.advances, dividend: t.dividend + r.dividend, loan: t.loan + r.loan, total: t.total + r.total }), { savings: 0, advances: 0, dividend: 0, loan: 0, total: 0 });
+    return { year, from: first, to: last, model, pool: { ...parts, total: pool }, rows, totals, notes, cash };
+  }
+
+  // ---------- 3c. Meetings ----------
+  // A meeting has an agenda, a register, minutes and action items. Closing it turns the register into
+  // attendance fines (charges) using the policy. Charges are owed amounts: they are paid later as fines.
+  const ATTENDANCE = ["present", "late", "apology", "absent"];
+  const newId = () => Math.random().toString(36).slice(2, 10);
+
+  function createMeeting(s, d) {
+    s.meetings = s.meetings || [];
+    const m = { id: d.id || newId(), title: d.title || "Meeting", type: d.type || "monthly", date: d.date, time: d.time || "", venue: d.venue || "", status: "planned", agenda: [], attendance: {}, minutes: "", actions: [], closedOn: "" };
+    s.meetings.push(m);
+    return m;
+  }
+  const findMeeting = (s, id) => (s.meetings || []).find((x) => x.id === id);
+
+  function meetingStats(s, m) {
+    const counts = { present: 0, late: 0, apology: 0, absent: 0, unmarked: 0 };
+    s.members.forEach((x) => { const st = (m.attendance || {})[x.id]; if (counts[st] !== undefined) counts[st]++; else counts.unmarked++; });
+    const total = s.members.length, attended = counts.present + counts.late;
+    const quorumNeeded = Math.ceil((total * s.policy.meetings.quorum_percent) / 100);
+    return { counts, total, attended, rate: total ? attended / total : 0, quorumNeeded, quorumMet: total > 0 && attended >= quorumNeeded };
+  }
+
+  function attendanceCharge(s, status) {
+    const p = s.policy.meetings;
+    if (status === "late") return p.late_fine;
+    if (status === "absent") return p.absent_fine;
+    if (status === "apology") return p.apology_excused ? 0 : p.absent_fine;
+    return 0;
+  }
+  function chargesForMeeting(s, m) {
+    const label = { late: "Late to", absent: "Absent from", apology: "Apology not excused for" };
+    return s.members.map((x) => {
+      const st = (m.attendance || {})[x.id], amount = attendanceCharge(s, st);
+      return amount > 0 ? { memberId: x.id, amount, reason: `${label[st]} ${m.title} on ${m.date}` } : null;
+    }).filter(Boolean);
+  }
+
+  // Makes s.charges match the register for a meeting. A charge that was waived stays waived.
+  function syncCharges(s, m) {
+    s.charges = s.charges || [];
+    const wanted = chargesForMeeting(s, m), mine = s.charges.filter((c) => c.meetingId === m.id);
+    s.charges = s.charges.filter((c) => c.meetingId !== m.id);
+    wanted.forEach((w) => {
+      const old = mine.find((c) => c.memberId === w.memberId);
+      s.charges.push({ id: old ? old.id : newId(), memberId: w.memberId, amount: w.amount, reason: w.reason, date: m.date, meetingId: m.id, waived: old ? !!old.waived : false });
+    });
+    const live = s.charges.filter((c) => c.meetingId === m.id && !c.waived);
+    return { posted: live.length, total: live.reduce((t, c) => t + c.amount, 0) };
+  }
+
+  function setAttendance(s, meetingId, memberId, status) {
+    const m = findMeeting(s, meetingId);
+    if (!m) return { ok: false, error: "Meeting not found." };
+    if (status !== "" && !ATTENDANCE.includes(status)) return { ok: false, error: "Unknown attendance status." };
+    if (!s.members.some((x) => x.id === memberId)) return { ok: false, error: "Member not found." };
+    m.attendance = m.attendance || {};
+    if (status === "") delete m.attendance[memberId]; else m.attendance[memberId] = status;
+    return { ok: true, ...(m.status === "held" ? syncCharges(s, m) : {}) };
+  }
+
+  function closeMeeting(s, id, on) {
+    const m = findMeeting(s, id);
+    if (!m) return { ok: false, error: "Meeting not found." };
+    if (m.status === "held") return { ok: false, error: "This meeting is already closed." };
+    const st = meetingStats(s, m);
+    if (st.counts.unmarked) return { ok: false, error: `Mark attendance for everyone first (${st.counts.unmarked} not marked).` };
+    m.status = "held"; m.closedOn = on;
+    return { ok: true, quorumMet: st.quorumMet, ...syncCharges(s, m) };
+  }
+
+  // Share of held meetings a member attended (on time or late).
+  function attendanceRate(s, memberId, lastN) {
+    let held = (s.meetings || []).filter((m) => m.status === "held").sort((a, b) => b.date.localeCompare(a.date));
+    if (lastN) held = held.slice(0, lastN);
+    const attended = held.filter((m) => ["present", "late"].includes((m.attendance || {})[memberId])).length;
+    return { held: held.length, attended, rate: held.length ? attended / held.length : null };
+  }
+
+  function openActions(s, today) {
+    const out = [];
+    (s.meetings || []).forEach((m) => (m.actions || []).forEach((a) => { if (!a.done) out.push({ meetingId: m.id, meetingTitle: m.title, meetingDate: m.date, id: a.id, text: a.text, ownerId: a.ownerId || "", due: a.due || "", overdue: !!(a.due && today && a.due < today) }); }));
+    return out.sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999"));
   }
 
   // ---------- 3b. Expense approvals ----------
@@ -244,13 +346,13 @@
   // Who may approve: multi-sig needs officials other than the person who asked; a vote is open to every member.
   function eligibleApprovers(s, e) {
     const multi = s.policy.expense_governance.approval_policy === "multi_sig";
-    const done = new Set((e.approvals || []).map((a) => a.memberId));
+    const done = new Set([...(e.approvals || []), ...(e.rejections || [])].map((a) => a.memberId));
     return s.members.filter((m) => !done.has(m.id) && (multi ? isOfficial(m) && m.id !== e.draftedBy : true));
   }
   function createExpense(s, d) {
     s.expenses = s.expenses || [];
     const needed = approvalsNeeded(s, d.amount);
-    const e = { id: d.id || Math.random().toString(36).slice(2, 10), date: d.date, amount: d.amount, description: d.description, draftedBy: d.draftedBy || "", receipt: d.receipt || "", needed, approvals: [], status: needed === 0 ? "approved" : "pending", approvedOn: needed === 0 ? d.date : "" };
+    const e = { id: d.id || Math.random().toString(36).slice(2, 10), date: d.date, amount: d.amount, description: d.description, draftedBy: d.draftedBy || "", receipt: d.receipt || "", category: d.category || "", needed, approvals: [], status: needed === 0 ? "approved" : "pending", approvedOn: needed === 0 ? d.date : "" };
     s.expenses.push(e);
     return e;
   }
@@ -262,13 +364,19 @@
     if (e.approvals.length >= e.needed) { e.status = "approved"; e.approvedOn = on; }
     return { ok: true, expense: e };
   }
-  function rejectExpense(s, id) {
+  // Without a member: the request is withdrawn or turned down outright.
+  // With a member: that person's "no" is recorded, and the expense is only declined once it can no longer reach
+  // the approvals it needs (so one "no" does not end a vote that others can still carry).
+  function rejectExpense(s, id, memberId, on) {
     const e = (s.expenses || []).find((x) => x.id === id);
     if (!e || e.status !== "pending") return false;
-    e.status = "rejected";
+    if (!memberId) { e.status = "rejected"; return true; }
+    if (!eligibleApprovers(s, e).some((m) => m.id === memberId)) return false;
+    (e.rejections = e.rejections || []).push({ memberId, at: on });
+    if (e.approvals.length + eligibleApprovers(s, e).length < e.needed) { e.status = "rejected"; e.rejectedOn = on; }
     return true;
   }
 
-  const api = { MODELS, APPROVALS, OFFICIALS, ACCOUNTS, PRESETS, defaultPolicy, mergePolicy, loanTotal, journal, balances, check, allocate, shareOut, approvalsNeeded, eligibleApprovers, createExpense, approveExpense, rejectExpense, isOfficial };
+  const api = { MODELS, APPROVALS, OFFICIALS, ACCOUNTS, PRESETS, defaultPolicy, mergePolicy, loanTotal, journal, balances, check, allocate, shareOut, approvalsNeeded, eligibleApprovers, createExpense, approveExpense, rejectExpense, isOfficial, ATTENDANCE, createMeeting, meetingStats, attendanceCharge, chargesForMeeting, syncCharges, setAttendance, closeMeeting, attendanceRate, openActions };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.Engine = api;
 })(typeof window !== "undefined" ? window : globalThis);

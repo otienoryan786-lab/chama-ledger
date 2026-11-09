@@ -36,4 +36,45 @@ t('multi_sig: 2 officials, drafter excluded, threshold tiers', ()=>{ const s=mk(
   assert.equal(E.approveExpense(s,big.id,'d','2026-02-04').ok,true); assert.equal(big.status,'approved'); assert.equal(E.balances(E.journal(s)).expenses,20000); });
 t('majority vote needs more than half', ()=>{ const s=mk(); s.policy.expense_governance.approval_policy='majority_vote'; const e=E.createExpense(s,{date:'2026-02-01',amount:100,description:'x',draftedBy:'b'}); assert.equal(e.needed,2); E.approveExpense(s,e.id,'a','d'); assert.equal(e.status,'pending'); E.approveExpense(s,e.id,'c','d'); assert.equal(e.status,'approved'); });
 t('reject keeps it out of the ledger', ()=>{ const s=mk(); s.policy.expense_governance.approval_policy='majority_vote'; const e=E.createExpense(s,{date:'2026-02-01',amount:100,description:'x'}); assert(E.rejectExpense(s,e.id)); assert.equal(E.balances(E.journal(s)).expenses,0); assert.equal(E.rejectExpense(s,e.id),false); });
+t('an "official" role can approve, and the return_savings option is validated', ()=>{ const s=mk(); s.members.push({id:'o',name:'O',role:'official'}); Object.assign(s.policy.expense_governance,{approval_policy:'multi_sig',signatories_required:1}); const e=E.createExpense(s,{date:'2026-02-01',amount:100,description:'x',draftedBy:'b'}); assert(E.eligibleApprovers(s,e).some(m=>m.id==='o')); assert.equal(E.defaultPolicy().year_end_shareout.return_savings,true); assert.equal(E.mergePolicy({year_end_shareout:{return_savings:'yes'}}).problems.length,1); assert.equal(E.mergePolicy({year_end_shareout:{return_savings:false}}).policy.year_end_shareout.return_savings,false); });
+t('a recorded "no" only ends a vote that can no longer pass', ()=>{ const s=mk(); s.policy.expense_governance.approval_policy='majority_vote'; const e=E.createExpense(s,{date:'2026-02-01',amount:100,description:'x',draftedBy:'b'}); assert.equal(e.needed,2);
+  assert(E.rejectExpense(s,e.id,'a','2026-02-02')); assert.equal(e.status,'pending'); assert.equal(e.rejections.length,1); // b and c can still approve
+  assert.equal(E.approveExpense(s,e.id,'a','2026-02-03').ok,false); // already voted no
+  assert.equal(E.rejectExpense(s,e.id,'a','2026-02-03'),false); // cannot vote twice
+  assert(E.rejectExpense(s,e.id,'b','2026-02-03')); assert.equal(e.status,'rejected'); assert.equal(E.balances(E.journal(s)).expenses,0); });
+t('multi_sig: one official declining ends a 2-of-2 request', ()=>{ const s=mk(); s.members.push({id:'d',name:'D',role:'secretary'}); s.policy.expense_governance={approval_policy:'multi_sig',signatories_required:2,approval_threshold:0}; const e=E.createExpense(s,{date:'2026-02-01',amount:500,description:'x',draftedBy:'b'}); E.rejectExpense(s,e.id,'a','2026-02-02'); assert.equal(e.status,'rejected'); });
+t('createExpense keeps the category', ()=>{ const s=mk(); const e=E.createExpense(s,{date:'2026-02-01',amount:10,description:'x',draftedBy:'b',category:'Legal'}); assert.equal(e.category,'Legal'); });
+t('share-out over a financial year that is not January to December', ()=>{ const s=mk(); pay(s,'a','2025-12',1000); pay(s,'b','2026-11',1000); pay(s,'c','2025-12',1000); pay(s,'c','2026-11',1000); pay(s,'a','2026-03',120,'fine');
+  const r=E.shareOut(s,2026,{model:'time_weighted',from:'2025-12',to:'2026-11'}); assert.equal(r.from,'2025-12'); assert.equal(r.to,'2026-11');
+  assert.deepEqual(r.rows.map(x=>x.weighted),[12000,1000,13000]); assert.equal(r.pool.total,120); assert.equal(r.rows.reduce((t,x)=>t+x.dividend,0),120);
+  const none=E.shareOut(s,2026,{from:'2026-04',to:'2027-03'}); assert.equal(none.pool.fines,0); // the March fine is outside this period
+  const late=mk(); pay(late,'a','2026-12',500); assert.equal(E.shareOut(late,2026,{from:'2025-12',to:'2026-11'}).rows[0].savings,0); // saved after the period ends: not counted yet
+});
+t('a hand-entered extra counts before the pool is worked out', ()=>{ const s=seed(); assert.equal(E.shareOut(s,2026,{extra:300}).pool.total,500); assert.equal(E.shareOut(s,2026,{extra:-250}).pool.total,0); E.createExpense(s,{date:'2026-06-01',amount:500,description:'x',draftedBy:'b'}); assert.equal(E.shareOut(s,2026,{extra:400}).pool.total,100); });
+t('advances are reported separately and savings are net of them', ()=>{ const s=mk(); s.policy.merry_go_round.is_separate_fund=false; pay(s,'a','2026-01',1000); s.payouts.push({kind:'round',month:'2026-01',memberId:'a',amount:400,date:'2026-01-28'}); const r=E.shareOut(s,2026); assert.equal(r.rows[0].advances,400); assert.equal(r.rows[0].savings,600); assert.equal(r.totals.advances,400); });
+t('meeting policy has safe defaults and rejects bad values', ()=>{ const d=E.defaultPolicy().meetings; assert.deepEqual(d,{absent_fine:0,late_fine:0,apology_excused:true,quorum_percent:50});
+  assert.equal(E.mergePolicy({meetings:{absent_fine:200,late_fine:100,apology_excused:false,quorum_percent:60}}).problems.length,0);
+  assert.equal(E.mergePolicy({meetings:{absent_fine:-1,quorum_percent:0,apology_excused:'yes'}}).problems.length,3);
+  assert.equal(E.mergePolicy({meetings:{quorum_percent:101}}).problems.length,1); });
+t('quorum is worked out from who attended on time or late', ()=>{ const s=mk(); s.policy.meetings.quorum_percent=60; const m=E.createMeeting(s,{title:'April',date:'2026-04-05'});
+  E.setAttendance(s,m.id,'a','present'); E.setAttendance(s,m.id,'b','late'); let st=E.meetingStats(s,m); assert.equal(st.attended,2); assert.equal(st.quorumNeeded,2); assert.equal(st.quorumMet,true); assert.equal(st.counts.unmarked,1);
+  E.setAttendance(s,m.id,'b','apology'); st=E.meetingStats(s,m); assert.equal(st.quorumMet,false); assert.equal(Math.round(st.rate*100),33); });
+t('a register must be complete before a meeting is closed, and a meeting closes only once', ()=>{ const s=mk(); const m=E.createMeeting(s,{title:'April',date:'2026-04-05'}); E.setAttendance(s,m.id,'a','present');
+  assert.match(E.closeMeeting(s,m.id,'2026-04-05').error,/2 not marked/); E.setAttendance(s,m.id,'b','present'); E.setAttendance(s,m.id,'c','present');
+  const r=E.closeMeeting(s,m.id,'2026-04-05'); assert.equal(r.ok,true); assert.equal(r.quorumMet,true); assert.equal(m.status,'held'); assert.equal(E.closeMeeting(s,m.id,'2026-04-06').ok,false); });
+t('closing a meeting posts attendance fines from the policy; an apology is excused unless the policy says otherwise', ()=>{ const s=mk(); Object.assign(s.policy.meetings,{absent_fine:200,late_fine:100});
+  const m=E.createMeeting(s,{title:'April',date:'2026-04-05'}); E.setAttendance(s,m.id,'a','late'); E.setAttendance(s,m.id,'b','absent'); E.setAttendance(s,m.id,'c','apology');
+  const r=E.closeMeeting(s,m.id,'2026-04-05'); assert.equal(r.posted,2); assert.equal(r.total,300); assert.deepEqual(s.charges.map(c=>[c.memberId,c.amount]).sort(),[['a',100],['b',200]]); assert(s.charges[0].reason.includes('April'));
+  s.policy.meetings.apology_excused=false; assert.equal(E.chargesForMeeting(s,m).find(c=>c.memberId==='c').amount,200); });
+t('correcting the register of a closed meeting re-works the fines and keeps waivers', ()=>{ const s=mk(); Object.assign(s.policy.meetings,{absent_fine:200,late_fine:100});
+  const m=E.createMeeting(s,{title:'April',date:'2026-04-05'}); ['a','b','c'].forEach(id=>E.setAttendance(s,m.id,id,'absent')); E.closeMeeting(s,m.id,'2026-04-05'); assert.equal(s.charges.length,3);
+  s.charges.find(c=>c.memberId==='a').waived=true; const r=E.setAttendance(s,m.id,'b','present'); assert.equal(r.posted,1); assert.equal(s.charges.length,2); // c still owes, a is waived
+  E.setAttendance(s,m.id,'a','late'); const a=s.charges.find(c=>c.memberId==='a'); assert.equal(a.amount,100); assert.equal(a.waived,true); });
+t('attendance rate counts held meetings only, newest first when limited', ()=>{ const s=mk(); const m1=E.createMeeting(s,{title:'M1',date:'2026-01-05'}), m2=E.createMeeting(s,{title:'M2',date:'2026-02-05'}), m3=E.createMeeting(s,{title:'M3',date:'2026-03-05'});
+  [[m1,'present'],[m2,'absent']].forEach(([m,st])=>{ ['a','b','c'].forEach(id=>E.setAttendance(s,m.id,id,id==='a'?st:'present')); E.closeMeeting(s,m.id,m.date); });
+  const all=E.attendanceRate(s,'a'); assert.equal(all.held,2); assert.equal(all.attended,1); assert.equal(all.rate,0.5); assert.equal(E.attendanceRate(s,'a',1).rate,0); assert.equal(E.attendanceRate(s,'b').rate,1);
+  assert.equal(E.attendanceRate(mk(),'a').rate,null); });
+t('open action items are listed with the overdue ones flagged', ()=>{ const s=mk(); const m=E.createMeeting(s,{title:'April',date:'2026-04-05'});
+  m.actions.push({id:'x1',text:'Visit the bank',ownerId:'a',due:'2026-04-20',done:false},{id:'x2',text:'Print forms',ownerId:'b',due:'2026-05-30',done:false},{id:'x3',text:'Done thing',ownerId:'c',due:'2026-04-10',done:true},{id:'x4',text:'No date',ownerId:'',due:'',done:false});
+  const list=E.openActions(s,'2026-05-01'); assert.deepEqual(list.map(x=>x.id),['x1','x2','x4']); assert.equal(list[0].overdue,true); assert.equal(list[1].overdue,false); assert.equal(list[2].overdue,false); });
 console.log(n+' tests passed');

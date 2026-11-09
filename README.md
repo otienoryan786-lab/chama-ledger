@@ -50,6 +50,14 @@ Chama Ledger replaces the notebook with one record that anyone in the group can 
 - **Welfare fund** with monthly collection, a balance and payouts with reasons.
 - **Loans with interest**, either flat or reducing balance, with instalments, repayments and the balance still owed.
 
+**Meetings**
+- **Schedule** monthly, annual general or special meetings. A notice with the agenda can be copied for the group's WhatsApp.
+- **Suggested agenda from the books:** contributions and arrears, loans behind schedule, who takes the merry-go-round pot, and expenses waiting for approval. You can add, reorder and remove items.
+- **Register** with Present, Late, Apology and Absent, and a live **quorum** check against the group's own quorum rule.
+- **Attendance fines** from the group's policy (absent fine, late fine, apology excused or fined). Closing the meeting posts them to each member's dues. Correcting the register later re-works the fines, and a fine can be waived.
+- **Minutes and decisions** under each agenda item, **action items** with an owner and a due date, and **matters arising** carried into the next meeting.
+- **Copy or print the minutes**, with space for signatures.
+
 **Trust and transparency**
 - **Group health:** a score out of 100 and a short, plain-language list of what needs attention (members behind, late loans, expenses waiting). The scoring is tested.
 - **Every figure explained:** open a member and expand **Why is this the amount?** to see contributions, fines, welfare, the pot and loans worked out line by line.
@@ -158,10 +166,11 @@ chama-ledger/
 ├── LICENSE      Terms of use
 ├── SECURITY.md  What must never be committed, and how to report problems
 ├── tests/
-│   ├── engine.test.js    Node tests for policy, ledger, share-out and approval rules
+│   ├── engine.test.js    Node tests for policy, ledger, share-out, approvals and meetings
 │   └── insights.test.js  Node tests for the health score and insights
 ├── package.json  Lets `npm test` run the tests
 ├── .github/workflows/test.yml  Runs the tests on every push
+├── meetings.js  The Meetings page: agenda, register, minutes, action items, notice and printing
 ├── insights.js  Group health score and insights (pure, tested)
 ├── ui.js        Theme, quick search, toasts with undo, install and offline status
 ├── trust.js     Group health panel, ledger, explanations, statements and projection
@@ -199,6 +208,7 @@ Plain HTML, CSS and JavaScript, with no frameworks or libraries. The charts are 
 - [x] Group health, ledger search, explanations, statement links and projection
 - [x] Installable, offline-capable app with quick search and dark mode
 - [x] Competitor research ([docs/COMPETITORS.md](docs/COMPETITORS.md))
+- [x] Meetings: agenda, register, quorum, attendance fines, minutes and action items
 - [ ] Fine cap setting
 - [ ] Loan limits and guarantors
 - [x] Year-end share-out of savings and interest

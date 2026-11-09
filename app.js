@@ -6,7 +6,7 @@ const MODE_KEY = "chamaLedger.mode";
 let policyProblems = [];
 const blank = () => ({
   settings: { name: "", amount: 0, start: "", dueDay: 5, graceDays: 0, fineType: "none", fineValue: 0, welfareAmount: 0 },
-  members: [], payments: [], loans: [], payouts: [], rotation: [], expenses: [], policy: Engine.defaultPolicy(),
+  members: [], payments: [], loans: [], payouts: [], rotation: [], expenses: [], meetings: [], charges: [], policy: Engine.defaultPolicy(),
 });
 // The welcome page links here with ?mode=mine or ?mode=demo. Otherwise we reuse the last mode.
 const qs = new URLSearchParams(location.search);
@@ -80,7 +80,9 @@ function fineBreakdown(id) {
   return out;
 }
 const fineFor = (id) => Math.round(fineBreakdown(id).reduce((t, x) => t + x.fine, 0));
-const finesOwed = (id) => Math.max(0, fineFor(id) - sumKind(id, "fine"));
+// Attendance fines come from closed meetings (see meetings.js); a waived one is not owed.
+const chargesFor = (id) => state.charges.filter((c) => c.memberId === id && !c.waived).reduce((t, c) => t + c.amount, 0);
+const finesOwed = (id) => Math.max(0, fineFor(id) + chargesFor(id) - sumKind(id, "fine"));
 const welfareOwed = (id) => Math.max(0, monthsDue() * (state.settings.welfareAmount || 0) - sumKind(id, "welfare"));
 const totalDue = (id) => arrears(id) + finesOwed(id) + welfareOwed(id) + mgrOwed(id);
 
@@ -122,7 +124,7 @@ const emptyRow = (cols, text) => {
 };
 
 // ---------- Navigation ----------
-const titles = { overview: "Overview", members: "Members", payments: "Payments", settings: "Settings", import: "Import records", loans: "Loans", funds: "Funds", yearend: "Year-end share-out", calc: "Calculators", expenses: "Expenses", ledger: "Ledger" };
+const titles = { overview: "Overview", members: "Members", payments: "Payments", settings: "Settings", import: "Import records", loans: "Loans", funds: "Funds", yearend: "Year-end share-out", calc: "Calculators", expenses: "Expenses", ledger: "Ledger", meetings: "Meetings" };
 function showView() {
   const v = titles[location.hash.slice(1)] ? location.hash.slice(1) : "overview";
   document.querySelectorAll(".view").forEach((s) => (s.hidden = s.id !== "view-" + v));
@@ -282,6 +284,8 @@ function fillSettings() {
   const pol = state.policy;
   $("setMgrMode").value = pol.merry_go_round.is_separate_fund ? "independent" : "integrated"; $("setMgrAmount").value = pol.merry_go_round.amount_per_member || "";
   $("setApproval").value = pol.expense_governance.approval_policy; $("setSigs").value = pol.expense_governance.signatories_required; $("setThreshold").value = pol.expense_governance.approval_threshold || "";
+  $("setAbsentFine").value = pol.meetings.absent_fine || ""; $("setLateFine").value = pol.meetings.late_fine || "";
+  $("setApology").value = pol.meetings.apology_excused ? "excused" : "fined"; $("setQuorum").value = pol.meetings.quorum_percent;
   if (policyProblems.length) policyMessage(`Some saved policy values were not valid and were replaced with defaults: ${policyProblems.join(" ")}`, false);
 }
 function render() {
@@ -296,6 +300,7 @@ function render() {
   renderYearEnd();
   renderExpenses();
   renderBuckets();
+  renderMeetings();
   renderHealth();
   renderLedger();
   animateStats();
@@ -320,6 +325,7 @@ $("savePolicy").onclick = () => {
   const r = Engine.mergePolicy({
     merry_go_round: { is_separate_fund: $("setMgrMode").value === "independent", amount_per_member: Number($("setMgrAmount").value) || 0 },
     expense_governance: { approval_policy: $("setApproval").value, signatories_required: Number($("setSigs").value) || 2, approval_threshold: Number($("setThreshold").value) || 0 },
+    meetings: { absent_fine: Number($("setAbsentFine").value) || 0, late_fine: Number($("setLateFine").value) || 0, apology_excused: $("setApology").value === "excused", quorum_percent: Number($("setQuorum").value) || 50 },
   }, state.policy);
   if (r.problems.length) return policyMessage(r.problems.join(" "), false); // nothing is saved until the policy is valid
   state.policy = r.policy; policyProblems = [];
@@ -399,6 +405,20 @@ function buildDemo() {
   // Roles, an expense policy and a few expenses, so the approval flow can be explored
   M[0].role = "chair"; M[1].role = "secretary"; M[5].role = "treasurer";
   state.policy.expense_governance = { approval_policy: "multi_sig", signatories_required: 2, approval_threshold: 1000 };
+  state.policy.meetings = { absent_fine: 200, late_fine: 100, apology_excused: true, quorum_percent: 50 };
+  // Three meetings that took place (the last one had too few people) and one coming up
+  const patterns = [["present", "present", "late", "present", "apology", "present", "absent", "present"], ["present", "late", "present", "absent", "present", "present", "present", "apology"], ["present", "absent", "absent", "present", "absent", "present", "apology", "absent"]];
+  patterns.forEach((pat, k) => {
+    const date = addMonths(start, 2 + k) + "-20", m = Engine.createMeeting(state, { id: uid(), title: `Monthly meeting, ${date}`, type: "monthly", date, time: "14:00", venue: "Chair's home" });
+    m.agenda = [{ id: uid(), title: "Call to order and apologies", notes: "", decision: "" }, { id: uid(), title: "Contributions and arrears", notes: k === 0 ? "Three members were behind. Reminders will be sent." : "", decision: k === 0 ? "Members behind pay before the next meeting." : "" }, { id: uid(), title: "Any other business", notes: "", decision: "" }];
+    if (k === 0) m.actions.push({ id: uid(), text: "Send reminders to members who are behind", ownerId: M[5].id, due: addMonths(start, 3) + "-05", done: true });
+    if (k === 1) m.actions.push({ id: uid(), text: "Get a quote for the AGM venue", ownerId: M[1].id, due: addMonths(start, 3) + "-30", done: false });
+    if (k === 2) { m.actions.push({ id: uid(), text: "Meet the advocate about loan agreements", ownerId: M[0].id, due: addMonths(start, 5) + "-15", done: false }); m.minutes = "Attendance was low. The group agreed to start meetings on time."; }
+    M.forEach((mem, i) => Engine.setAttendance(state, m.id, mem.id, pat[i]));
+    Engine.closeMeeting(state, m.id, date);
+  });
+  const upcoming = Engine.createMeeting(state, { id: uid(), title: `Monthly meeting, ${thisMonth()}-27`, type: "monthly", date: thisMonth() + "-27", time: "14:00", venue: "Chair's home" });
+  upcoming.agenda = [{ id: uid(), title: "Call to order and apologies", notes: "", decision: "" }, { id: uid(), title: "Expenses awaiting approval", notes: "", decision: "" }, { id: uid(), title: "Any other business", notes: "", decision: "" }];
   const spend = (d) => Engine.createExpense(state, { id: uid(), draftedBy: M[5].id, ...d });
   spend({ date: addMonths(start, 2) + "-12", amount: 400, description: "Stationery and printing", category: "Administration", receipt: "0412" });
   const venue = spend({ date: addMonths(start, 4) + "-03", amount: 1500, description: "Venue hire for the AGM", category: "Meeting" });
@@ -716,6 +736,7 @@ $("pMonth").value = thisMonth();
 fillSettings();
 Engine.PRESETS.forEach((p) => $("setPreset").append(new Option(p.label, p.id)));
 initUI();
+initMeetings();
 initLedger();
 initProjection();
 initYearEnd();

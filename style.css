@@ -181,3 +181,23 @@ details.why summary{cursor:pointer;font-weight:500}
 }
 @media print{.fab,.toasts,#health{display:none!important}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* meetings */
+tbody tr.sel{background:var(--hover);box-shadow:inset 4px 0 0 var(--accent)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.seg button{background:transparent;color:var(--ink);border-radius:0;padding:.3rem .7rem;font-size:.85rem;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--navy);color:#fff}
+.agitem{border:1px solid var(--line);border-radius:6px;padding:.7rem;margin-bottom:.7rem;display:grid;gap:.5rem}
+.agitem textarea,.agitem input{width:100%}
+.arising{background:var(--hover);border-left:5px solid var(--accent);border-radius:5px;padding:.7rem .9rem;margin-bottom:.9rem}
+.actionrow{align-items:center;margin-bottom:.5rem}
+.actionrow input[type=checkbox]{min-width:0;width:auto}
+.printarea{display:none}
+@media print{
+  body.printing-minutes .app,body.printing-minutes dialog,body.printing-minutes .fab,body.printing-minutes .banner{display:none!important}
+  body.printing-minutes .printarea{display:block;color:#000;background:#fff;padding:1rem;font:14px/1.5 "IBM Plex Sans",system-ui,sans-serif}
+  body.printing-minutes .printarea h1{font-size:1.5rem;margin:0 0 .3rem}
+  body.printing-minutes .printarea h2{font-size:1.15rem;margin:1.2rem 0 .3rem;border-bottom:1px solid #999}
+  body.printing-minutes .printarea h3{font-size:1rem;margin:.8rem 0 .2rem}
+}

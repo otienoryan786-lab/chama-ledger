@@ -22,7 +22,10 @@ function buildSummary() {
     return { name: memberName(l.memberId), balance: st.balance, behindBy: Math.max(0, Math.round(expected - st.repaid)) };
   }).filter(Boolean);
   const pending = state.expenses.filter((e) => e.status === "pending");
-  return { memberCount: members.length, monthLabel: month, members, loans, loansOut: b.loans_receivable, savings: b.savings, cash: b.cash, booksBalanced: c.balanced, cashNegative: c.cashNegative, pending: { count: pending.length, amount: pending.reduce((s, e) => s + e.amount, 0) } };
+  const heldM = state.meetings.filter((m) => m.status === "held").sort((a, b) => b.date.localeCompare(a.date)), last = heldM[0], ls = last ? Engine.meetingStats(state, last) : null;
+  const openA = Engine.openActions(state, today());
+  const lowAttendance = state.members.filter((m) => { const r = Engine.attendanceRate(state, m.id, 3); return r.held >= 2 && r.rate < 0.5; }).map((m) => m.name);
+  return { meeting: last ? { date: last.date, attended: ls.attended, total: ls.total, quorumMet: ls.quorumMet } : null, actions: { open: openA.length, overdue: openA.filter((a) => a.overdue).length }, lowAttendance, daysSinceMeeting: last ? dayDiff(last.date, today()) : null, memberCount: members.length, monthLabel: month, members, loans, loansOut: b.loans_receivable, savings: b.savings, cash: b.cash, booksBalanced: c.balanced, cashNegative: c.cashNegative, pending: { count: pending.length, amount: pending.reduce((s, e) => s + e.amount, 0) } };
 }
 
 function renderHealth() {
@@ -103,13 +106,18 @@ function explainDues(id) {
   if (s.start && !m.opening) for (let ym = s.start; ym <= thisMonth(); ym = addMonths(ym, 1)) { const p = paidBy(id, ym); if (p < pl) c.push(`${ym}: paid ${kes(p)} of ${kes(pl)}.`); }
   c.push(arrears(id) ? `So ${kes(arrears(id))} is still to pay.` : "Fully paid up.");
   out.push({ title: "Contributions", amount: arrears(id), lines: c });
-  // Fines
-  if (s.fineType !== "none" && s.fineValue) {
-    const rule = s.fineType === "flat" ? `${kes(s.fineValue)} for each late payment` : s.fineType === "daily" ? `${kes(s.fineValue)} for each day late` : `${s.fineValue}% of the contribution`;
-    const f = [`Your chama's rule: ${rule}, due on day ${s.dueDay || 5}${s.graceDays ? ` with ${s.graceDays} grace days` : ""}.`];
-    fineBreakdown(id).forEach((x) => f.push(`${x.month}: ${x.doneOn ? `completed on ${x.doneOn}` : "not fully paid yet"}, ${x.late} day${x.late === 1 ? "" : "s"} after ${x.limit} gives ${kes(x.fine)}.`));
+  // Fines: late contributions and attendance at meetings
+  const rule = s.fineType !== "none" && s.fineValue, myCharges = state.charges.filter((c) => c.memberId === id);
+  if (rule || myCharges.length) {
+    const f = [];
+    if (rule) {
+      const text = s.fineType === "flat" ? `${kes(s.fineValue)} for each late payment` : s.fineType === "daily" ? `${kes(s.fineValue)} for each day late` : `${s.fineValue}% of the contribution`;
+      f.push(`Late contributions: ${text}, due on day ${s.dueDay || 5}${s.graceDays ? ` with ${s.graceDays} grace days` : ""}.`);
+      fineBreakdown(id).forEach((x) => f.push(`${x.month}: ${x.doneOn ? `completed on ${x.doneOn}` : "not fully paid yet"}, ${x.late} day${x.late === 1 ? "" : "s"} after ${x.limit} gives ${kes(x.fine)}.`));
+    }
+    myCharges.forEach((c) => f.push(`${c.date}: ${c.reason}: ${kes(c.amount)}${c.waived ? " (waived)" : ""}.`));
     f.push(`Fines paid so far: ${kes(sumKind(id, "fine"))}.`, finesOwed(id) ? `So ${kes(finesOwed(id))} is still owed.` : "Nothing owed in fines.");
-    out.push({ title: "Late fines", amount: finesOwed(id), lines: f });
+    out.push({ title: "Fines", amount: finesOwed(id), lines: f });
   }
   if (s.welfareAmount) out.push({ title: "Welfare", amount: welfareOwed(id), lines: [`${kes(s.welfareAmount)} a month for ${n} month${n === 1 ? "" : "s"} comes to ${kes(s.welfareAmount * n)}.`, `Paid so far: ${kes(sumKind(id, "welfare"))}.`, welfareOwed(id) ? `So ${kes(welfareOwed(id))} is still to pay.` : "Fully paid up."] });
   if (mgrSeparate() && mgrAmount()) out.push({ title: "Merry-go-round pot", amount: mgrOwed(id), lines: [`${kes(mgrAmount())} a month for ${n} month${n === 1 ? "" : "s"} comes to ${kes(mgrAmount() * n)}.`, `Paid so far: ${kes(sumKind(id, "mgr"))}.`, mgrOwed(id) ? `So ${kes(mgrOwed(id))} is still to pay.` : "Fully paid up."] });

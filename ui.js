@@ -61,6 +61,7 @@ function paletteItems() {
     { group: "Do", label: "Record a payment", run: go("payments", "pAmount") },
     { group: "Do", label: "Add a member", run: go("members", "mName") },
     { group: "Do", label: "Record an expense", run: go("expenses", "exDesc") },
+    { group: "Do", label: "Schedule a meeting", run: go("meetings", "mtDate") },
     { group: "Do", label: "Give a loan", run: go("loans", "lAmount") },
     { group: "Do", label: mode === "demo" ? "Switch to my chama" : "Switch to demo data", run: () => setMode(mode === "demo" ? "mine" : "demo") },
     { group: "Do", label: "Change theme", run: cycleTheme },

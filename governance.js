@@ -32,6 +32,7 @@ function migrateState(st) {
 
   (st.members || []).forEach((m) => { m.role = String(m.role || "member").toLowerCase(); if (!ROLE_OPTIONS.some((r) => r[0] === m.role)) m.role = "member"; });
   (st.payments || []).forEach((x) => { if (x.kind === "round") x.kind = "mgr"; });
+  st.meetings = st.meetings || []; st.charges = st.charges || [];
   st.expenses = (st.expenses || []).map((e) => {
     if (e.description !== undefined) return e;
     const votes = e.votes || [];
