@@ -120,7 +120,7 @@ node tests/engine.test.js
 # or: npm test
 ```
 
-The same tests run automatically on GitHub whenever code is pushed.
+The same tests run automatically on GitHub whenever code is pushed. `tests/site.test.js` checks that every script, stylesheet, image, icon and offline-cache entry the pages point to actually exists, so a file that was forgotten during an upload shows up as a failed check instead of a blank page.
 
 ## How data is stored
 
@@ -167,7 +167,8 @@ chama-ledger/
 ├── SECURITY.md  What must never be committed, and how to report problems
 ├── tests/
 │   ├── engine.test.js    Node tests for policy, ledger, share-out, approvals and meetings
-│   └── insights.test.js  Node tests for the health score and insights
+│   ├── insights.test.js  Node tests for the health score and insights
+│   └── site.test.js      Checks that every file the pages need exists
 ├── package.json  Lets `npm test` run the tests
 ├── .github/workflows/test.yml  Runs the tests on every push
 ├── meetings.js  The Meetings page: agenda, register, minutes, action items, notice and printing
@@ -175,6 +176,7 @@ chama-ledger/
 ├── ui.js        Theme, quick search, toasts with undo, install and offline status
 ├── trust.js     Group health panel, ledger, explanations, statements and projection
 ├── statement.html, statement.js, statement.css  The member statement page
+├── welcome.js   Hides a welcome-page screenshot that fails to load
 ├── theme.js     Applies the saved theme before the page draws
 ├── manifest.webmanifest, sw.js, icons/  Install and offline support
 ├── docs/COMPETITORS.md  Competitor research and where Chama Ledger is different
