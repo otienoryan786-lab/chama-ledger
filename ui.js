@@ -10,8 +10,7 @@ function applyTheme() {
   const pref = localStorage.getItem(THEME_KEY) || "auto";
   const dark = pref === "dark" || (pref === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.dataset.theme = dark ? "dark" : "light";
-  const names = { auto: "Theme: auto", light: "Theme: light", dark: "Theme: dark" };
-  if ($("themeBtn")) { $("themeBtn").textContent = names[pref]; $("themeBtn").title = "Change theme"; }
+  themeButtonUI(pref);
   render(); // charts take their colours from the theme
 }
 function cycleTheme() {
@@ -54,7 +53,7 @@ function animateStats() {
 // ---------- Command palette ----------
 let palIndex = 0, palItems = [];
 function paletteItems() {
-  const go = (view, focus) => () => { location.hash = view; if (focus) setTimeout(() => $(focus).focus(), 60); };
+  const go = (view, focus) => () => { location.hash = view; if (focus) setTimeout(() => { const f = $(focus), d = f && f.closest("details"); if (d) d.open = true; if (f) f.focus(); }, 60); };
   const items = [];
   document.querySelectorAll("#nav button").forEach((b) => items.push({ group: "Go to", label: b.textContent.trim(), run: go(b.dataset.view) }));
   items.push(
@@ -114,7 +113,4 @@ function initUI() {
   window.addEventListener("online", net); window.addEventListener("offline", net); net();
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(() => {});
 }
-function applyThemeButtonOnly() {
-  const pref = localStorage.getItem(THEME_KEY) || "auto";
-  $("themeBtn").textContent = { auto: "Theme: auto", light: "Theme: light", dark: "Theme: dark" }[pref];
-}
+function applyThemeButtonOnly() { themeButtonUI(localStorage.getItem(THEME_KEY) || "auto"); }

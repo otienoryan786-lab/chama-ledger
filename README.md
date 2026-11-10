@@ -65,6 +65,13 @@ Chama Ledger replaces the notebook with one record that anyone in the group can 
 - **Statements:** a printable statement for each member, and a **link** a member can open on their own phone with no account. The statement travels inside the link (after the `#`), so it is never sent to a server.
 - **Projection:** on the Year-end page, see what each member gets if the period ended today and what they get if members keep paying. Slide the payment rate to see the effect.
 
+**Designed to be used on a phone**
+- **The circle:** the Overview shows every member as a dot in a ring, like the logo. Green has paid, gold is part paid, red is not yet, and the person who takes this month's pot is ringed. Select a dot to open that member.
+- **Clear navigation:** pages grouped under Money, Group, Records and Your chama, each with an icon. On a phone, a tab bar for the four most-used pages and a sheet for the rest.
+- **Headline figures** with a trend line and a progress meter, initial avatars, plain-text status badges, and add-forms that fold away once you have data.
+- **Tables become cards** on a phone, so nothing scrolls sideways.
+- The thinking behind it is in [docs/DESIGN.md](docs/DESIGN.md).
+
 **An app that feels like one**
 - **Works offline and installs** on a phone's home screen (a progressive web app).
 - **Quick search and actions** with `Ctrl+K` (or `/`, or the + button on a phone): jump to a page, open a member or record a payment.
@@ -177,9 +184,12 @@ chama-ledger/
 ├── trust.js     Group health panel, ledger, explanations, statements and projection
 ├── statement.html, statement.js, statement.css  The member statement page
 ├── welcome.js   Hides a welcome-page screenshot that fails to load
+├── design.css   The design system: tokens, components, phone layout
+├── design.js    Icons, avatars, the circle, figure decorations, phone tab bar and sheet
 ├── theme.js     Applies the saved theme before the page draws
 ├── manifest.webmanifest, sw.js, icons/  Install and offline support
 ├── docs/COMPETITORS.md  Competitor research and where Chama Ledger is different
+├── docs/DESIGN.md       Design principles, tokens and components
 ├── logo.svg     Logo and favicon
 ├── docs/        Screenshots used in this README
 └── README.md
@@ -211,6 +221,7 @@ Plain HTML, CSS and JavaScript, with no frameworks or libraries. The charts are 
 - [x] Installable, offline-capable app with quick search and dark mode
 - [x] Competitor research ([docs/COMPETITORS.md](docs/COMPETITORS.md))
 - [x] Meetings: agenda, register, quorum, attendance fines, minutes and action items
+- [x] Design system: the circle, grouped navigation, icons, avatars, badges and a phone tab bar
 - [ ] Fine cap setting
 - [ ] Loan limits and guarantors
 - [x] Year-end share-out of savings and interest

@@ -10,45 +10,51 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="design.css">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#12263a">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <script src="theme.js"></script>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 <div class="app">
   <aside class="side">
-    <a class="brand" href="index.html" title="Back to the welcome page"><img src="logo.svg" alt="" width="44" height="44"><span>Chama<br>Ledger</span></a>
-    <nav id="nav">
-      <button data-view="overview">Overview</button>
-      <button data-view="members">Members</button>
-      <button data-view="payments">Payments</button>
-      <button data-view="loans">Loans</button>
-      <button data-view="funds">Funds</button>
-      <button data-view="expenses">Expenses</button>
-      <button data-view="meetings">Meetings</button>
-      <button data-view="ledger">Ledger</button>
-      <button data-view="yearend">Year-end</button>
-      <button data-view="calc">Calculators</button>
-      <button data-view="import">Import</button>
-      <button data-view="settings">Settings</button>
-    </nav>
-  </aside>
+  <a class="brand" href="index.html" title="Back to the welcome page"><img src="logo.svg" alt="" width="44" height="44"><span>Chama<br>Ledger</span></a>
+  <nav id="nav" aria-label="Main">
+    <button data-view="overview" data-icon="home"><svg class="ico" aria-hidden="true"><use href="#i-home"></use></svg><span>Overview</span></button>
+    <p class="navlabel">Money</p>
+    <button data-view="payments" data-icon="wallet"><svg class="ico" aria-hidden="true"><use href="#i-wallet"></use></svg><span>Payments</span></button>
+    <button data-view="loans" data-icon="swap"><svg class="ico" aria-hidden="true"><use href="#i-swap"></use></svg><span>Loans</span></button>
+    <button data-view="funds" data-icon="stack"><svg class="ico" aria-hidden="true"><use href="#i-stack"></use></svg><span>Funds</span></button>
+    <button data-view="expenses" data-icon="receipt"><svg class="ico" aria-hidden="true"><use href="#i-receipt"></use></svg><span>Expenses</span></button>
+    <p class="navlabel">Group</p>
+    <button data-view="members" data-icon="users"><svg class="ico" aria-hidden="true"><use href="#i-users"></use></svg><span>Members</span></button>
+    <button data-view="meetings" data-icon="calendar"><svg class="ico" aria-hidden="true"><use href="#i-calendar"></use></svg><span>Meetings</span></button>
+    <p class="navlabel">Records</p>
+    <button data-view="ledger" data-icon="book"><svg class="ico" aria-hidden="true"><use href="#i-book"></use></svg><span>Ledger</span></button>
+    <button data-view="yearend" data-icon="chart"><svg class="ico" aria-hidden="true"><use href="#i-chart"></use></svg><span>Year-end</span></button>
+    <button data-view="calc" data-icon="calc"><svg class="ico" aria-hidden="true"><use href="#i-calc"></use></svg><span>Calculators</span></button>
+    <button data-view="import" data-icon="upload"><svg class="ico" aria-hidden="true"><use href="#i-upload"></use></svg><span>Import</span></button>
+    <p class="navlabel">Your chama</p>
+    <button data-view="settings" data-icon="sliders"><svg class="ico" aria-hidden="true"><use href="#i-sliders"></use></svg><span>Settings</span></button>
+  </nav>
+  <div class="sidefoot"><a class="homelink" href="index.html"><svg class="ico" aria-hidden="true"><use href="#i-back"></use></svg>Welcome page</a></div>
+</aside>
 
   <div class="content">
     <header class="top">
       <div><h1 id="pageTitle">Overview</h1><p id="groupName"></p></div>
       <div class="top-right">
-        <a class="homelink" href="index.html">&larr; Welcome page</a>
-        <button type="button" id="searchBtn" class="ghost sm" title="Search or jump (Ctrl+K)">Search <kbd>Ctrl K</kbd></button>
-        <button type="button" id="themeBtn" class="ghost sm"></button>
-        <button type="button" id="installBtn" class="sm" hidden>Install app</button>
+        <button type="button" id="searchBtn" class="iconbtn" title="Search or jump (Ctrl+K)"><span>Search</span><kbd>Ctrl K</kbd></button>
+        <button type="button" id="themeBtn" class="iconbtn"></button>
+        <button type="button" id="installBtn" class="iconbtn" hidden>Install app</button>
         <span id="netPill" class="pill" hidden>Offline: saved on this device</span>
         <div class="mode" role="group" aria-label="Which data to show">
           <button type="button" id="modeMine">My chama</button>
           <button type="button" id="modeDemo">Demo data</button>
         </div>
-        <label>Showing month <input id="viewMonth" type="month"></label>
+        <label><span class="lbl">Showing month</span><input id="viewMonth" type="month"></label>
       </div>
     </header>
     <div class="banner" id="demoBanner" hidden>
@@ -57,7 +63,7 @@
       <button type="button" id="resetDemo" class="ghost">Reset demo</button>
     </div>
 
-    <main>
+    <main id="main">
       <!-- OVERVIEW -->
       <section class="view" id="view-overview">
         <div class="panel onboard" id="onboard" hidden>
@@ -66,21 +72,25 @@
           <div class="row"><button type="button" id="onboardSetup">Set up my chama</button><button type="button" id="onboardDemo" class="ghost">View demo data</button></div>
         </div>
         <div class="stats" id="stats"></div>
-        <div class="panel" id="health"><h2>Group health</h2><div id="healthBox" class="healthgrid"></div></div>
+        <div class="overview-grid">
+          <div class="panel circle-panel">
+            <h2>The circle</h2>
+            <p class="hint" id="circleHint"></p>
+            <div id="ring"></div>
+            <div class="legend"><span><i class="l-paid"></i>Paid</span><span><i class="l-part"></i>Part paid</span><span><i class="l-none"></i>Not yet</span><span><i class="l-rec"></i>Takes the pot</span></div>
+          </div>
+          <div class="panel" id="health"><h2>Group health</h2><div id="healthBox" class="healthgrid"></div></div>
+        </div>
         <div class="grid2">
           <div class="panel"><h2>Collections, last 6 months</h2><div id="chart"></div></div>
-          <div class="panel"><h2>Paid in the selected month</h2><div id="ring"></div></div>
-        </div>
-        <div class="grid2">
           <div class="panel"><h2>Biggest arrears</h2><ul class="list" id="topArrears"></ul></div>
-          <div class="panel"><h2>Latest payments</h2><ul class="list" id="recent"></ul></div>
         </div>
+        <div class="panel"><h2>Latest payments</h2><ul class="list" id="recent"></ul></div>
       </section>
 
       <!-- MEMBERS -->
       <section class="view" id="view-members" hidden>
-        <div class="panel">
-          <h2>Add a member</h2>
+        <details class="panel fold" id="foldMember"><summary><h2>Add a member</h2></summary>
           <form id="memberForm" class="row">
             <label>Name <input id="mName" required></label>
             <label>Phone (2547XXXXXXXX) <input id="mPhone" inputmode="numeric" pattern="254[0-9]{9}" required></label>
@@ -89,7 +99,7 @@
             <label>Already paid before (KES, optional) <input id="mOpening" type="number" min="0"></label>
             <button>Add member</button>
           </form>
-        </div>
+        </details>
         <div class="panel">
           <div class="row">
             <label>Search <input id="search" placeholder="Type a name"></label>
@@ -145,8 +155,7 @@
 
             <!-- LOANS -->
       <section class="view" id="view-loans" hidden>
-        <div class="panel">
-          <h2>Give a loan</h2>
+        <details class="panel fold" id="foldLoan"><summary><h2>Give a loan</h2></summary>
           <form id="loanForm" class="row">
             <label>Member <select id="lMember" required></select></label>
             <label>Amount (KES) <input id="lAmount" type="number" min="1" required></label>
@@ -158,7 +167,7 @@
             <label>Date given <input id="lDate" type="date" required></label>
             <button>Save loan</button>
           </form>
-        </div>
+        </details>
         <div class="panel">
           <h2>Loans</h2>
           <div class="scroll">
@@ -208,8 +217,7 @@
       <!-- EXPENSES -->
       <section class="view" id="view-expenses" hidden>
         <div class="stats" id="exStats"></div>
-        <div class="panel">
-          <h2>Record an expense</h2>
+        <details class="panel fold" id="foldExpense"><summary><h2>Record an expense</h2></summary>
           <p class="hint" id="exRule"></p>
           <form id="expenseForm" class="row">
             <label>What for <input id="exDesc" required></label>
@@ -223,7 +231,7 @@
             <button>Submit expense</button>
           </form>
           <p id="exMsg" role="status"></p>
-        </div>
+        </details>
         <div class="panel">
           <h2>Expenses</h2>
           <div class="scroll">
@@ -239,8 +247,7 @@
       <!-- MEETINGS -->
       <section class="view" id="view-meetings" hidden>
         <div class="stats" id="mtStats"></div>
-        <div class="panel">
-          <h2>Schedule a meeting</h2>
+        <details class="panel fold" id="foldMeeting"><summary><h2>Schedule a meeting</h2></summary>
           <form id="meetingForm" class="row">
             <label>Type
               <select id="mtType"><option value="monthly">Monthly meeting</option><option value="agm">Annual general meeting</option><option value="special">Special meeting</option></select>
@@ -250,7 +257,7 @@
             <label>Venue <input id="mtVenue" placeholder="e.g. the chair's home, or online"></label>
             <button>Create meeting</button>
           </form>
-        </div>
+        </details>
         <div class="panel">
           <h2>Meetings</h2>
           <div class="scroll">
@@ -464,6 +471,14 @@
   </div>
 </div>
 
+<div id="tabbar" class="tabbar" role="navigation" aria-label="Main tabs">
+  <button data-tab="overview"><svg class="ico" aria-hidden="true"><use href="#i-home"></use></svg><span>Home</span></button>
+  <button data-tab="members"><svg class="ico" aria-hidden="true"><use href="#i-users"></use></svg><span>Members</span></button>
+  <button data-tab="payments"><svg class="ico" aria-hidden="true"><use href="#i-wallet"></use></svg><span>Payments</span></button>
+  <button data-tab="meetings"><svg class="ico" aria-hidden="true"><use href="#i-calendar"></use></svg><span>Meetings</span></button>
+  <button data-tab="more"><svg class="ico" aria-hidden="true"><use href="#i-more"></use></svg><span>More</span></button>
+</div>
+<dialog id="moreSheet" class="sheet" aria-label="All pages"></dialog>
 <dialog id="memberDialog"></dialog>
 <dialog id="palette" class="pal" aria-label="Quick actions">
   <input id="palInput" placeholder="Type a page, a member or an action" autocomplete="off" aria-label="Search">
@@ -480,6 +495,7 @@
 <script src="ui.js"></script>
 <script src="trust.js"></script>
 <script src="meetings.js"></script>
+<script src="design.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

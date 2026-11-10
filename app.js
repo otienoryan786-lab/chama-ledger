@@ -129,9 +129,10 @@ function showView() {
   const v = titles[location.hash.slice(1)] ? location.hash.slice(1) : "overview";
   document.querySelectorAll(".view").forEach((s) => (s.hidden = s.id !== "view-" + v));
   document.querySelectorAll("#nav button").forEach((b) => b.classList.toggle("on", b.dataset.view === v));
-  $("pageTitle").textContent = titles[v];
+  $("pageTitle").textContent = v === "overview" ? greeting() : titles[v];
+  syncTabs(v); renderSubtitle();
 }
-$("nav").onclick = (e) => { if (e.target.dataset.view) location.hash = e.target.dataset.view; };
+$("nav").onclick = (e) => { const b = e.target.closest("button[data-view]"); if (b) location.hash = b.dataset.view; };
 window.onhashchange = showView;
 
 // ---------- Render: Overview ----------
@@ -215,7 +216,7 @@ function renderMembers(month) {
     tr.tabIndex = 0;
     tr.onclick = () => openMember(m.id);
     tr.onkeydown = (e) => { if (e.key === "Enter") openMember(m.id); };
-    tr.append(cell(m.name + (roleOf(m) !== "member" ? ` (${roleLabel(roleOf(m))})` : "")), cell(el("span", ok ? "Paid " + kes(paidBy(m.id, month)) : "Not paid", ok ? "paid" : "unpaid")), cell(kes(paidBy(m.id))), cell(kes(arrears(m.id))), cell(kes(finesOwed(m.id) + welfareOwed(m.id) + mgrOwed(m.id))));
+    tr.append(nameCell(m.name, roleOf(m) !== "member" ? ` (${roleLabel(roleOf(m))})` : ""), cell(badge(ok ? "Paid " + kes(paidBy(m.id, month)) : "Not paid", ok ? "ok" : "bad")), cell(kes(paidBy(m.id))), cell(kes(arrears(m.id))), cell(kes(finesOwed(m.id) + welfareOwed(m.id) + mgrOwed(m.id))));
     return tr;
   }) : [emptyRow(5, state.members.length ? "No member matches that filter." : "No members yet. Add your first member above.")]));
 }
@@ -303,6 +304,11 @@ function render() {
   renderMeetings();
   renderHealth();
   renderLedger();
+  renderCircle();
+  decorateStats();
+  syncFolds();
+  autoLabel();
+  renderSubtitle();
   animateStats();
 }
 
@@ -714,6 +720,7 @@ function setMode(next) {
   localStorage.setItem(MODE_KEY, mode);
   if (mode === "demo" && !localStorage.getItem(KEYS.demo)) { state = blank(); buildDemo(); } else state = loadState();
   $("yeFrom").value = ""; $("yeTo").value = "";
+  resetFolds();
   loadYearEndControls();
   fillSettings(); render(); renderCalc();
   location.hash = "overview";
@@ -735,6 +742,7 @@ $("viewMonth").value = thisMonth();
 $("pMonth").value = thisMonth();
 fillSettings();
 Engine.PRESETS.forEach((p) => $("setPreset").append(new Option(p.label, p.id)));
+initDesign();
 initUI();
 initMeetings();
 initLedger();

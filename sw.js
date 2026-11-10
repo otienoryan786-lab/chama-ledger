@@ -1,7 +1,7 @@
 // Service worker: keeps the app working with no internet.
 // It tries the network first, so updates arrive as soon as you are online, and falls back to the saved copy.
-const CACHE = "chama-ledger-v3";
-const ASSETS = ["./", "index.html", "app.html", "statement.html", "style.css", "welcome.css", "statement.css", "theme.js", "engine.js", "insights.js", "governance.js", "calculators.js", "ui.js", "trust.js", "meetings.js", "app.js", "statement.js", "welcome.js", "logo.svg", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/maskable-512.png"];
+const CACHE = "chama-ledger-v4";
+const ASSETS = ["./", "index.html", "app.html", "statement.html", "style.css", "design.css", "welcome.css", "statement.css", "theme.js", "engine.js", "insights.js", "governance.js", "calculators.js", "ui.js", "trust.js", "meetings.js", "design.js", "app.js", "statement.js", "welcome.js", "logo.svg", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/maskable-512.png"];
 
 self.addEventListener("install", (e) => {
   // Add files one by one so a single missing file cannot stop the app from installing

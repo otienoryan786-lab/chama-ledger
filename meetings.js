@@ -29,7 +29,7 @@ function renderMeetings() {
   $("mtRows").replaceChildren(...(all.length ? all.map((m) => {
     const st = Engine.meetingStats(state, m), tr = el("tr", undefined, "click");
     if (m.id === mtSelected) tr.classList.add("sel");
-    const status = m.status === "held" ? el("span", st.quorumMet ? "Held" : "Held, no quorum", st.quorumMet ? "paid" : "unpaid") : el("span", "Planned");
+    const status = m.status === "held" ? badge(st.quorumMet ? "Held" : "Held, no quorum", st.quorumMet ? "ok" : "bad") : badge("Planned", "info");
     const marked = st.total - st.counts.unmarked;
     tr.append(cell(m.date), cell(m.title), cell(status), cell(marked ? `${st.attended} of ${st.total} (${Math.round(st.rate * 100)}%)` : "-"), cell(el("span", m.id === mtSelected ? "Open" : "View", "hint")));
     tr.onclick = () => { mtSelected = m.id; renderMeetings(); $("mtDetail").scrollIntoView({ behavior: "smooth", block: "start" }); };
@@ -50,7 +50,7 @@ function meetingDetail(m) {
   // Header
   const head = el("div", undefined, "panel");
   const title = el("div", undefined, "row between");
-  title.append(el("h2", m.title), el("span", held ? "Closed" : "Open for editing", held ? "paid" : "hint"));
+  title.append(el("h2", m.title), badge(held ? "Closed" : "Open for editing", held ? "ok" : "info"));
   const meta = el("div", undefined, "row");
   meta.append(
     field("Title", textInput(m.title, (v) => { m.title = v; })),
@@ -142,7 +142,7 @@ function meetingDetail(m) {
       seg.append(b);
     });
     const amount = Engine.attendanceCharge(state, cur);
-    const tr = el("tr"); tr.append(cell(x.name + (roleOf(x) !== "member" ? ` (${roleLabel(roleOf(x))})` : "")), cell(seg), cell(amount ? kes(amount) : "-"));
+    const tr = el("tr"); tr.append(nameCell(x.name, roleOf(x) !== "member" ? ` (${roleLabel(roleOf(x))})` : ""), cell(seg), cell(amount ? kes(amount) : "-"));
     tb.append(tr);
   });
   table.append(thead, tb); wrap.append(table); at.append(wrap);

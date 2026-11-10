@@ -114,7 +114,7 @@ function renderExpenses() {
     }
     const del = el("button", "Delete", "del");
     del.onclick = () => { if (confirm("Delete this expense record?")) { state.expenses = state.expenses.filter((x) => x.id !== e.id); save(); render(); } };
-    const st = el("span", e.status === "approved" ? "Approved" : e.status === "rejected" ? "Declined" : "Pending", e.status === "approved" ? "paid" : e.status === "rejected" ? "unpaid" : "");
+    const st = badge(e.status === "approved" ? "Approved" : e.status === "rejected" ? "Declined" : "Pending", e.status === "approved" ? "ok" : e.status === "rejected" ? "bad" : "warn");
     tr.append(cell(e.date), cell(name), cell(kes(e.amount)), cell(st), cell(statusText(e)), cell(act), cell(del));
     return tr;
   }) : [emptyRow(7, "No expenses recorded yet.")]));
