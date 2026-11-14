@@ -28,13 +28,16 @@
     <button data-view="loans" data-icon="swap"><svg class="ico" aria-hidden="true"><use href="#i-swap"></use></svg><span>Loans</span></button>
     <button data-view="funds" data-icon="stack"><svg class="ico" aria-hidden="true"><use href="#i-stack"></use></svg><span>Funds</span></button>
     <button data-view="expenses" data-icon="receipt"><svg class="ico" aria-hidden="true"><use href="#i-receipt"></use></svg><span>Expenses</span></button>
+    <button data-view="reconcile" data-icon="scale"><svg class="ico" aria-hidden="true"><use href="#i-scale"></use></svg><span>Reconcile</span></button>
     <p class="navlabel">Group</p>
     <button data-view="members" data-icon="users"><svg class="ico" aria-hidden="true"><use href="#i-users"></use></svg><span>Members</span></button>
     <button data-view="meetings" data-icon="calendar"><svg class="ico" aria-hidden="true"><use href="#i-calendar"></use></svg><span>Meetings</span></button>
     <p class="navlabel">Records</p>
     <button data-view="ledger" data-icon="book"><svg class="ico" aria-hidden="true"><use href="#i-book"></use></svg><span>Ledger</span></button>
+    <button data-view="audit" data-icon="shield"><svg class="ico" aria-hidden="true"><use href="#i-shield"></use></svg><span>Audit trail</span></button>
     <button data-view="yearend" data-icon="chart"><svg class="ico" aria-hidden="true"><use href="#i-chart"></use></svg><span>Year-end</span></button>
     <button data-view="calc" data-icon="calc"><svg class="ico" aria-hidden="true"><use href="#i-calc"></use></svg><span>Calculators</span></button>
+    <button data-view="documents" data-icon="file"><svg class="ico" aria-hidden="true"><use href="#i-file"></use></svg><span>Documents</span></button>
     <button data-view="import" data-icon="upload"><svg class="ico" aria-hidden="true"><use href="#i-upload"></use></svg><span>Import</span></button>
     <p class="navlabel">Your chama</p>
     <button data-view="settings" data-icon="sliders"><svg class="ico" aria-hidden="true"><use href="#i-sliders"></use></svg><span>Settings</span></button>
@@ -208,8 +211,10 @@
             <label>Member helped <select id="wMember" required></select></label>
             <label>Amount (KES) <input id="wAmount" type="number" min="1" required></label>
             <label>Reason <input id="wReason" required></label>
+            <label id="wOverrideLabel" hidden>Reason for going beyond the rules <input id="wOverride"></label>
             <button>Record welfare payout</button>
           </form>
+          <p id="wMsg" role="status"></p>
           <ul class="list" id="welfareList"></ul>
         </div>
       </section>
@@ -364,6 +369,95 @@
         <div class="panel" id="calcBox"></div>
       </section>
 
+      <!-- RECONCILE -->
+      <section class="view" id="view-reconcile" hidden>
+        <div class="panel">
+          <h2>Check the books against the real money</h2>
+          <p class="hint">Count what is really there: the bank balance, the paybill or till balance and the cash in hand. The app compares the total with what the records say should be there. Do this every month.</p>
+          <div class="row">
+            <label>As at <input id="rcDate" type="date"></label>
+            <label>Bank balance (KES) <input id="rcBank" type="number" min="0"></label>
+            <label>M-Pesa paybill or till (KES) <input id="rcMpesa" type="number" min="0"></label>
+            <label>Cash in hand (KES) <input id="rcCash" type="number" min="0"></label>
+            <label>Note <input id="rcNote" placeholder="Optional"></label>
+          </div>
+          <div class="stats" id="rcResult"></div>
+          <p id="rcAdvice"></p>
+          <div class="row"><button id="rcSave" type="button">Save this check</button></div>
+        </div>
+        <div class="panel">
+          <h2>Past checks</h2>
+          <div class="scroll"><table><thead><tr><th>Date</th><th>Counted</th><th>Records say</th><th>Difference</th><th>Result</th><th>Checked by</th><th>Note</th></tr></thead><tbody id="rcRows"></tbody></table></div>
+        </div>
+        <div class="panel">
+          <h2>Compare with an M-Pesa statement</h2>
+          <p class="hint">Paste lines from the paybill or till statement, or the M-Pesa messages, one per line. Each line needs its 10-character code. The app shows what is in the statement but not in the records, what has a different amount, and what is recorded but missing from the statement.</p>
+          <textarea id="stText" rows="7" placeholder="SJK4X9ABCD Confirmed. Ksh2,000.00 received from WANJIKU KAMAU 0712000001 on 5/11/26"></textarea>
+          <div class="row"><button id="stCompare" type="button">Compare</button></div>
+          <div id="stOut"></div>
+        </div>
+      </section>
+
+      <!-- AUDIT -->
+      <section class="view" id="view-audit" hidden>
+        <div class="stats" id="auStats"></div>
+        <div class="panel">
+          <h2>How this protects the group</h2>
+          <p class="hint">Every change to the records is logged with the time and who made it. Each entry carries a fingerprint of the one before it, so an entry cannot be changed, removed or reordered without the chain breaking. A deleted payment stays in the trail forever. This makes changes visible. It cannot stop someone with access to the device, so share a checkpoint with the group regularly.</p>
+          <div class="row"><label>Your name in the trail <input id="auActor" placeholder="Treasurer"></label></div>
+        </div>
+        <div class="panel">
+          <h2>Checkpoints</h2>
+          <p class="hint">A checkpoint is a short code that stands for the whole history so far. Send it to the group's WhatsApp after each meeting. If anyone later rewrites the past, the code will no longer match.</p>
+          <div class="row"><button id="cpMake" type="button">Make a checkpoint and copy it</button></div>
+          <ul class="list" id="cpList"></ul>
+          <h3>Check a checkpoint</h3>
+          <div class="row"><label>Checkpoint code <input id="cpInput" placeholder="CL-120-A1B2C3D4E5F6"></label><button id="cpCheck" type="button" class="ghost">Check</button></div>
+          <p id="cpResult"></p>
+        </div>
+        <div class="panel">
+          <div class="row between"><h2>The trail</h2><div class="row"><button id="auCsv" type="button" class="ghost">Download CSV</button><button id="auJson" type="button" class="ghost">Download full trail</button></div></div>
+          <div class="row"><label>Search <input id="auSearch" placeholder="Name, code or words"></label><label>Show <select id="auWhat"></select></label></div>
+          <div class="scroll"><table><thead><tr><th>#</th><th>When</th><th>Who</th><th>What</th><th>Details</th><th>Fingerprint</th></tr></thead><tbody id="auRows"></tbody></table></div>
+          <div class="row"><button id="auMore" type="button" class="ghost" hidden></button></div>
+          <div class="row"><button id="auReset" type="button" class="del">Start a new audit trail</button></div>
+        </div>
+      </section>
+
+      <!-- DOCUMENTS -->
+      <section class="view" id="view-documents" hidden>
+        <div class="panel">
+          <h2>Constitution</h2>
+          <p class="hint">A draft written from the rules your chama already uses in this app, so what is written down and what the app does stay the same. It is a starting point in plain language, not legal advice. Edit it together at a meeting, then adopt it.</p>
+          <div class="row"><button id="coCreate" type="button">Create from my rules</button><button id="coAdopt" type="button" class="ghost" hidden>Adopt this version</button><button id="coPrint" type="button" class="ghost" hidden>Print</button></div>
+          <div id="coBox"></div>
+          <h3>Adoption history</h3>
+          <div class="scroll"><table><thead><tr><th>Version</th><th>Adopted on</th><th>Approved by</th><th>Fingerprint</th><th>Note</th></tr></thead><tbody id="coHistory"></tbody></table></div>
+        </div>
+        <div class="panel">
+          <h2>Registration pack</h2>
+          <p class="hint">What groups are commonly asked for when registering with the sub-county Social Development office or opening a bank account. Requirements and fees are set by the office, bank or lender and can change, so confirm with them. <a href="https://socialprotection.go.ke/services-group-registration" target="_blank" rel="noopener">Social Protection: group registration</a></p>
+          <ul class="list checklist" id="rgList"></ul>
+        </div>
+        <div class="panel">
+          <h2>Financial statements</h2>
+          <p class="hint">Money received and paid, and what the chama holds, for any period, straight from the ledger.</p>
+          <div class="row">
+            <label>From month <input id="fsFrom" type="month"></label>
+            <label>To month <input id="fsTo" type="month"></label>
+            <button id="fsPrint" type="button" class="ghost">Print statements</button>
+            <button id="fsReport" type="button" class="ghost">Print annual report</button>
+          </div>
+          <div id="fsOut"></div>
+        </div>
+        <div class="panel">
+          <h2>Track record</h2>
+          <p class="hint">How reliably the group has behaved over time. It names no members, so it can be shown to a SACCO, bank or lender.</p>
+          <div id="trBox"></div>
+          <div class="row"><button id="trPrint" type="button" class="ghost">Print track record</button></div>
+        </div>
+      </section>
+
       <!-- IMPORT -->
       <section class="view" id="view-import" hidden>
         <div class="panel">
@@ -454,6 +548,9 @@
               <select id="setApology"><option value="excused">Excused (no fine)</option><option value="fined">Fined like an absence</option></select>
             </label>
             <label>Quorum (% of members) <input id="setQuorum" type="number" min="1" max="100"></label>
+            <label>Welfare reserve (KES) <input id="setReserve" type="number" min="0"></label>
+            <label>Largest welfare claim (KES) <input id="setClaimCap" type="number" min="0"></label>
+            <label>Claims per member per year <input id="setMaxClaims" type="number" min="0"></label>
             <button id="savePolicy">Save policy</button>
           </div>
         </div>
@@ -489,12 +586,17 @@
 <div id="printArea" class="printarea"></div>
 <button id="fab" class="fab" type="button" aria-label="Search or jump">+</button>
 <script src="engine.js"></script>
+<script src="audit.js"></script>
+<script src="record.js"></script>
+<script src="constitution.js"></script>
 <script src="insights.js"></script>
 <script src="governance.js"></script>
 <script src="calculators.js"></script>
 <script src="ui.js"></script>
 <script src="trust.js"></script>
 <script src="meetings.js"></script>
+<script src="safeguards.js"></script>
+<script src="documents.js"></script>
 <script src="design.js"></script>
 <script src="app.js"></script>
 </body>

@@ -35,6 +35,11 @@
       signatories_required: 2,
       approval_threshold: 0, // expenses up to this amount post straight away (0 = no limit)
     },
+    welfare: {
+      reserve_min: 0, // the fund should never fall below this (0 = no reserve)
+      claim_cap: 0, // the most one claim can be (0 = no cap)
+      max_claims_per_year: 0, // claims one member can make in a year (0 = no limit)
+    },
     meetings: {
       absent_fine: 0, // charged to a member marked absent (0 = no fine)
       late_fine: 0, // charged to a member marked late
@@ -61,7 +66,7 @@
       problems.push(`"${key}" must be a JSON object.`);
       return null;
     };
-    const ye = section("year_end_shareout"), mg = section("merry_go_round"), ex = section("expense_governance"), mt = section("meetings");
+    const ye = section("year_end_shareout"), mg = section("merry_go_round"), ex = section("expense_governance"), mt = section("meetings"), wf = section("welfare");
     if (ye) {
       if ("model" in ye) { if (MODELS.includes(ye.model)) p.year_end_shareout.model = ye.model; else problems.push(`Unknown share-out model "${ye.model}". Use ${MODELS.join(", ")}.`); }
       ["include_fines", "include_loan_interest", "include_welfare_surplus", "deduct_unpaid_loans", "return_savings"].forEach((k) => bool(ye, k, p.year_end_shareout));
@@ -75,6 +80,10 @@
       if ("approval_policy" in ex) { if (APPROVALS.includes(ex.approval_policy)) p.expense_governance.approval_policy = ex.approval_policy; else problems.push(`Unknown approval_policy "${ex.approval_policy}". Use ${APPROVALS.join(", ")}.`); }
       if ("signatories_required" in ex) { if (Number.isInteger(ex.signatories_required) && ex.signatories_required >= 1 && ex.signatories_required <= 10) p.expense_governance.signatories_required = ex.signatories_required; else problems.push('"signatories_required" must be a whole number from 1 to 10.'); }
       if ("approval_threshold" in ex) { if (isMoney(ex.approval_threshold)) p.expense_governance.approval_threshold = ex.approval_threshold; else problems.push('"approval_threshold" must be a number, 0 or more.'); }
+    }
+    if (wf) {
+      ["reserve_min", "claim_cap"].forEach((k) => { if (k in wf) { if (isMoney(wf[k])) p.welfare[k] = wf[k]; else problems.push(`"${k}" must be a number, 0 or more.`); } });
+      if ("max_claims_per_year" in wf) { if (Number.isInteger(wf.max_claims_per_year) && wf.max_claims_per_year >= 0) p.welfare.max_claims_per_year = wf.max_claims_per_year; else problems.push('"max_claims_per_year" must be a whole number, 0 or more.'); }
     }
     if (mt) {
       ["absent_fine", "late_fine"].forEach((k) => { if (k in mt) { if (isMoney(mt[k])) p.meetings[k] = mt[k]; else problems.push(`"${k}" must be a number, 0 or more.`); } });
@@ -333,6 +342,59 @@
     return out.sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999"));
   }
 
+  // ---------- 3d. Welfare protection ----------
+  // Welfare funds fail when several claims arrive together. These rules do not forbid a claim: they tell the
+  // treasurer, before the money goes out, which of the group's own rules it would break.
+  function checkWelfareClaim(s, c) {
+    const w = s.policy.welfare, bal = balances(journal(s)).welfare, issues = [];
+    if (c.amount > bal) issues.push({ rule: "balance", text: `The welfare fund only has ${fmtKES(bal)}.` });
+    else if (w.reserve_min > 0 && bal - c.amount < w.reserve_min) issues.push({ rule: "reserve", text: `This would leave ${fmtKES(bal - c.amount)} in the fund, below the reserve of ${fmtKES(w.reserve_min)}.` });
+    if (w.claim_cap > 0 && c.amount > w.claim_cap) issues.push({ rule: "cap", text: `This is more than the claim limit of ${fmtKES(w.claim_cap)}.` });
+    if (w.max_claims_per_year > 0) {
+      const year = String(c.date).slice(0, 4), made = (s.payouts || []).filter((p) => p.kind === "welfare" && p.memberId === c.memberId && String(p.date).slice(0, 4) === year).length;
+      if (made >= w.max_claims_per_year) issues.push({ rule: "frequency", text: `This member has already had ${made} claim${made === 1 ? "" : "s"} this year. The limit is ${w.max_claims_per_year}.` });
+    }
+    return { ok: !issues.length, issues, balance: bal, after: bal - c.amount };
+  }
+  // How many months the fund would last at the pace of the last twelve months (null when nothing has been paid out).
+  function welfareCover(s, today) {
+    const from = `${Number(today.slice(0, 4)) - 1}-${today.slice(5, 7)}-${today.slice(8, 10)}`;
+    const out = (s.payouts || []).filter((p) => p.kind === "welfare" && p.date > from && p.date <= today).reduce((t, p) => t + p.amount, 0);
+    return out ? balances(journal(s)).welfare / (out / 12) : null;
+  }
+  const fmtKES = (n) => "KES " + Math.round(n).toLocaleString("en-KE");
+
+  // ---------- 3e. Checking the books against the real money ----------
+  // `statementTotal` is what the bank, the paybill and the cash box really hold. The books say what they should hold.
+  function reconcileCash(s, date, statementTotal) {
+    const expected = Math.round(balances(journal(s), (e) => e.date <= date).cash), diff = Math.round(statementTotal - expected);
+    return { expected, statement: Math.round(statementTotal), diff, status: Math.abs(diff) <= 1 ? "matched" : diff > 0 ? "statement_higher" : "statement_lower" };
+  }
+
+  // ---------- 3f. Financial statements ----------
+  // Money in and out over a period, grouped in words, and the position at a date. Both come straight from the ledger.
+  const RECEIPT = { savings: "Contributions", fines: "Fines", welfare: "Welfare contributions", mgr: "Merry-go-round pot contributions", loans_receivable: "Loan principal repaid", loan_interest: "Loan interest received" };
+  const PAYMENT = { loans_receivable: "Loans given out", expenses: "Expenses", welfare: "Welfare payouts", mgr: "Merry-go-round pots paid out", mgr_advances: "Merry-go-round pots paid out" };
+  function cashStatement(s, from, to) {
+    const J = journal(s), a = `${from}-01`, b = `${to}-31`, receipts = {}, payments = {};
+    J.filter((e) => e.date >= a && e.date <= b).forEach((e) => {
+      const cash = e.lines.find((l) => l.acct === "cash");
+      if (!cash) return;
+      if (cash.dr > 0) e.lines.filter((l) => l.acct !== "cash" && l.cr > 0).forEach((l) => { const k = e.kind === "opening" ? "Balance brought forward from earlier records" : RECEIPT[l.acct] || l.acct; receipts[k] = (receipts[k] || 0) + l.cr; });
+      if (cash.cr > 0) e.lines.filter((l) => l.acct !== "cash" && l.dr > 0).forEach((l) => { const k = PAYMENT[l.acct] || l.acct; payments[k] = (payments[k] || 0) + l.dr; });
+    });
+    const opening = balances(J, (e) => e.date < a).cash, closing = balances(J, (e) => e.date <= b).cash;
+    const sum = (o) => Object.values(o).reduce((t, v) => t + v, 0), r = sum(receipts), p = sum(payments);
+    return { from, to, opening, receipts, payments, totalReceipts: r, totalPayments: p, closing, reconciles: Math.abs(opening + r - p - closing) < 1 };
+  }
+  function position(s, date) {
+    const b = balances(journal(s), (e) => e.date <= date);
+    const assets = { "Cash in the chama account": b.cash, "Loans owed to the chama": b.loans_receivable, "Merry-go-round advances to members": b.mgr_advances };
+    const funds = { "Member savings": b.savings, "Merry-go-round pot": b.mgr, "Welfare fund": b.welfare, "Fines collected": b.fines, "Loan interest earned": b.loan_interest, "Less expenses paid": -b.expenses };
+    const sum = (o) => Object.values(o).reduce((t, v) => t + v, 0);
+    return { date, assets, funds, totalAssets: sum(assets), totalFunds: sum(funds), balanced: Math.abs(sum(assets) - sum(funds)) < 1 };
+  }
+
   // ---------- 3b. Expense approvals ----------
   const isOfficial = (m) => OFFICIALS.includes(m.role);
   // How many approvals an expense of this size needs under the group's policy.
@@ -377,6 +439,6 @@
     return true;
   }
 
-  const api = { MODELS, APPROVALS, OFFICIALS, ACCOUNTS, PRESETS, defaultPolicy, mergePolicy, loanTotal, journal, balances, check, allocate, shareOut, approvalsNeeded, eligibleApprovers, createExpense, approveExpense, rejectExpense, isOfficial, ATTENDANCE, createMeeting, meetingStats, attendanceCharge, chargesForMeeting, syncCharges, setAttendance, closeMeeting, attendanceRate, openActions };
+  const api = { MODELS, APPROVALS, OFFICIALS, ACCOUNTS, PRESETS, defaultPolicy, mergePolicy, loanTotal, journal, balances, check, allocate, shareOut, approvalsNeeded, eligibleApprovers, createExpense, approveExpense, rejectExpense, isOfficial, ATTENDANCE, createMeeting, meetingStats, attendanceCharge, chargesForMeeting, syncCharges, setAttendance, closeMeeting, attendanceRate, openActions, checkWelfareClaim, welfareCover, reconcileCash, cashStatement, position };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.Engine = api;
 })(typeof window !== "undefined" ? window : globalThis);

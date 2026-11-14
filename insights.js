@@ -43,6 +43,10 @@
     else if (s.actions && s.actions.open > 0) out.push({ level: "info", text: `${s.actions.open} action item${s.actions.open > 1 ? "s" : ""} from meetings ${s.actions.open > 1 ? "are" : "is"} still open.`, view: "meetings" });
     if (s.lowAttendance && s.lowAttendance.length) out.push({ level: "info", text: `${list(s.lowAttendance)} ${s.lowAttendance.length > 1 ? "have" : "has"} attended less than half of recent meetings.`, view: "meetings" });
     if (s.daysSinceMeeting !== null && s.daysSinceMeeting !== undefined && s.daysSinceMeeting > 60) out.push({ level: "info", text: `No meeting has been held for ${s.daysSinceMeeting} days.`, view: "meetings" });
+    if (s.welfare && s.welfare.reserve > 0 && s.welfare.balance < s.welfare.reserve) out.push({ level: "warn", text: `The welfare fund (${money(s.welfare.balance)}) is below its reserve of ${money(s.welfare.reserve)}.`, view: "funds" });
+    const rc = s.reconcile;
+    if (rc && rc.last && rc.last.diff !== 0 && rc.last.days <= 35) out.push({ level: "warn", text: `The last check of the books against the real money found a difference of ${money(Math.abs(rc.last.diff))}.`, view: "reconcile" });
+    else if (rc && rc.hasRecords && (!rc.last || rc.last.days > 35)) out.push({ level: "info", text: rc.last ? `The books were last checked against the real money ${rc.last.days} days ago.` : "The books have never been checked against the bank, paybill and cash. Do it on the Reconcile page.", view: "reconcile" });
     if (!s.booksBalanced) out.push({ level: "bad", text: "The books are out of balance. Check the Ledger page for entries that look wrong.", view: "ledger" });
     else if (s.cashNegative) out.push({ level: "warn", text: "Recorded loans, payouts and expenses are more than the money recorded coming in. Look for missing payments.", view: "ledger" });
     if (!behind.length && !unpaid.length) out.push({ level: "good", text: `Everyone is paid up for ${s.monthLabel}.` });

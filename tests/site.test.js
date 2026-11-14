@@ -19,7 +19,7 @@ const refs = (html) => [...html.matchAll(/\b(?:src|href)="([^"]+)"/g)].map((m) =
 });
 t('app.html loads engine.js before the files that use it, and app.js last', () => {
   const order = [...read('app.html').matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
-  ['engine.js', 'governance.js', 'trust.js', 'meetings.js'].forEach((f) => assert(order.includes(f), f + ' is not loaded'));
+  ['audit.js', 'record.js', 'constitution.js', 'engine.js', 'governance.js', 'trust.js', 'meetings.js', 'safeguards.js', 'documents.js', 'design.js'].forEach((f) => assert(order.includes(f), f + ' is not loaded'));
   assert(order.indexOf('engine.js') < order.indexOf('governance.js'), 'engine.js must come before governance.js');
   assert.equal(order[order.length - 1], 'app.js', 'app.js must be the last script');
 });

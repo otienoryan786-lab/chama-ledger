@@ -6,14 +6,16 @@ const MODE_KEY = "chamaLedger.mode";
 let policyProblems = [];
 const blank = () => ({
   settings: { name: "", amount: 0, start: "", dueDay: 5, graceDays: 0, fineType: "none", fineValue: 0, welfareAmount: 0 },
-  members: [], payments: [], loans: [], payouts: [], rotation: [], expenses: [], meetings: [], charges: [], policy: Engine.defaultPolicy(),
+  members: [], payments: [], loans: [], payouts: [], rotation: [], expenses: [], meetings: [], charges: [], reconciliations: [], constitution: null, policy: Engine.defaultPolicy(),
 });
 // The welcome page links here with ?mode=mine or ?mode=demo. Otherwise we reuse the last mode.
 const qs = new URLSearchParams(location.search);
 let mode = qs.get("mode") === "demo" || qs.get("demo") === "1" ? "demo" : qs.get("mode") === "mine" ? "mine" : localStorage.getItem(MODE_KEY) === "demo" ? "demo" : "mine";
 localStorage.setItem(MODE_KEY, mode);
+let rawStored = null; // the records exactly as saved, before any upgrade (the audit trail compares against this)
 function loadState() {
-  const st = JSON.parse(localStorage.getItem(KEYS[mode]) || "null") || blank();
+  rawStored = localStorage.getItem(KEYS[mode]);
+  const st = JSON.parse(rawStored || "null") || blank();
   // Older saved data may lack the newer fields, so fill in the gaps
   st.settings = { ...blank().settings, ...st.settings };
   st.loans = st.loans || []; st.payouts = st.payouts || []; st.rotation = st.rotation || []; st.expenses = st.expenses || [];
@@ -21,7 +23,7 @@ function loadState() {
   return st;
 }
 let state = loadState();
-const save = () => localStorage.setItem(KEYS[mode], JSON.stringify(state));
+const save = () => { localStorage.setItem(KEYS[mode], JSON.stringify(state)); queueAudit(); }; // every save is noticed and logged a moment later (safeguards.js)
 const today = () => new Date().toISOString().slice(0, 10);
 
 // ---------- Helpers ----------
@@ -124,13 +126,15 @@ const emptyRow = (cols, text) => {
 };
 
 // ---------- Navigation ----------
-const titles = { overview: "Overview", members: "Members", payments: "Payments", settings: "Settings", import: "Import records", loans: "Loans", funds: "Funds", yearend: "Year-end share-out", calc: "Calculators", expenses: "Expenses", ledger: "Ledger", meetings: "Meetings" };
+const titles = { overview: "Overview", members: "Members", payments: "Payments", settings: "Settings", import: "Import records", loans: "Loans", funds: "Funds", yearend: "Year-end share-out", calc: "Calculators", expenses: "Expenses", ledger: "Ledger", meetings: "Meetings", reconcile: "Reconcile", audit: "Audit trail", documents: "Documents" };
 function showView() {
   const v = titles[location.hash.slice(1)] ? location.hash.slice(1) : "overview";
   document.querySelectorAll(".view").forEach((s) => (s.hidden = s.id !== "view-" + v));
   document.querySelectorAll("#nav button").forEach((b) => b.classList.toggle("on", b.dataset.view === v));
   $("pageTitle").textContent = v === "overview" ? greeting() : titles[v];
   syncTabs(v); renderSubtitle();
+  if (v === "audit") renderAudit();
+  if (v === "documents") renderDocuments();
 }
 $("nav").onclick = (e) => { const b = e.target.closest("button[data-view]"); if (b) location.hash = b.dataset.view; };
 window.onhashchange = showView;
@@ -271,7 +275,7 @@ function renderPayments() {
     const del = el("button", "Delete", "del");
     del.onclick = () => { const snap = JSON.stringify(state); state.payments = state.payments.filter((x) => x.id !== p.id); save(); render(); toast("Payment deleted.", () => { state = JSON.parse(snap); save(); render(); }); };
     const tr = el("tr");
-    tr.append(cell(p.paidOn || p.date), cell(memberName(p.memberId)), cell(p.month), cell(kes(p.amount)), cell(p.ref), cell(kindOf(p) + " · " + (p.source || "mpesa")), cell(del));
+    tr.append(cell(p.paidOn || p.date), cell(memberName(p.memberId)), cell(p.month), cell(kes(p.amount)), cell(p.ref), cell(kindOf(p) + " · " + (p.source || "mpesa")), cell(rowActions(p, del)));
     return tr;
   }) : [emptyRow(7, "No payments to show.")]));
 }
@@ -287,6 +291,7 @@ function fillSettings() {
   $("setApproval").value = pol.expense_governance.approval_policy; $("setSigs").value = pol.expense_governance.signatories_required; $("setThreshold").value = pol.expense_governance.approval_threshold || "";
   $("setAbsentFine").value = pol.meetings.absent_fine || ""; $("setLateFine").value = pol.meetings.late_fine || "";
   $("setApology").value = pol.meetings.apology_excused ? "excused" : "fined"; $("setQuorum").value = pol.meetings.quorum_percent;
+  $("setReserve").value = pol.welfare.reserve_min || ""; $("setClaimCap").value = pol.welfare.claim_cap || ""; $("setMaxClaims").value = pol.welfare.max_claims_per_year || "";
   if (policyProblems.length) policyMessage(`Some saved policy values were not valid and were replaced with defaults: ${policyProblems.join(" ")}`, false);
 }
 function render() {
@@ -302,6 +307,7 @@ function render() {
   renderExpenses();
   renderBuckets();
   renderMeetings();
+  renderReconcile();
   renderHealth();
   renderLedger();
   renderCircle();
@@ -332,6 +338,7 @@ $("savePolicy").onclick = () => {
     merry_go_round: { is_separate_fund: $("setMgrMode").value === "independent", amount_per_member: Number($("setMgrAmount").value) || 0 },
     expense_governance: { approval_policy: $("setApproval").value, signatories_required: Number($("setSigs").value) || 2, approval_threshold: Number($("setThreshold").value) || 0 },
     meetings: { absent_fine: Number($("setAbsentFine").value) || 0, late_fine: Number($("setLateFine").value) || 0, apology_excused: $("setApology").value === "excused", quorum_percent: Number($("setQuorum").value) || 50 },
+    welfare: { reserve_min: Number($("setReserve").value) || 0, claim_cap: Number($("setClaimCap").value) || 0, max_claims_per_year: Number($("setMaxClaims").value) || 0 },
   }, state.policy);
   if (r.problems.length) return policyMessage(r.problems.join(" "), false); // nothing is saved until the policy is valid
   state.policy = r.policy; policyProblems = [];
@@ -358,7 +365,7 @@ $("payForm").onsubmit = (e) => {
   if (state.payments.some((p) => p.ref === ref)) return say("That M-Pesa code is already recorded.", false);
   if (!state.members.length) return say("Add a member first.", false);
   state.payments.push({ id: uid(), memberId: $("pMember").value, month: $("pMonth").value, amount: Number($("pAmount").value), ref, source: cash ? "cash" : "mpesa", kind: $("pKind").value, paidOn: $("pDate").value || today(), date: new Date().toISOString().slice(0, 10) });
-  save(); render(); say("Payment saved.", true); toast("Payment saved.");
+  save(); render(); say("Payment saved.", true); toast("Payment saved.", null, receiptAction(state.payments[state.payments.length - 1]));
   $("pRef").value = "";
 };
 $("exportBtn").onclick = () => {
@@ -432,6 +439,18 @@ function buildDemo() {
   Engine.approveExpense(state, venue.id, M[1].id, addMonths(start, 4) + "-05");
   const legal = spend({ date: addMonths(start, 5) + "-01", amount: 2500, description: "Legal fees for loan agreements", category: "Legal", receipt: "Quote from the advocate" });
   Engine.approveExpense(state, legal.id, M[0].id, addMonths(start, 5) + "-02");
+  // Welfare limits, two checks of the books against the real money, and an adopted constitution
+  state.policy.welfare = { reserve_min: 1000, claim_cap: 1500, max_claims_per_year: 2 };
+  const rcDate = (k) => addMonths(thisMonth(), -k) + "-28", rcExp = (d) => Engine.reconcileCash(state, d, 0).expected;
+  state.reconciliations = [
+    { id: uid(), date: rcDate(2), bank: rcExp(rcDate(2)) - 6000, mpesa: 4000, cash: 2000, statement: rcExp(rcDate(2)), expected: rcExp(rcDate(2)), diff: 0, status: "matched", note: "", by: M[5].name + " (treasurer)" },
+    { id: uid(), date: rcDate(1), bank: rcExp(rcDate(1)) - 4200, mpesa: 3000, cash: 1000, statement: rcExp(rcDate(1)) - 200, expected: rcExp(rcDate(1)), diff: -200, status: "statement_lower", note: "Cash not yet banked", by: M[5].name + " (treasurer)" },
+  ];
+  const DEMO_FILL = { "bank or M-Pesa account name and number": "Demo SACCO account 0000-0000", "pays a penalty of ...": "pays a penalty of 5% of the late amount" };
+  const DEMO_PHRASES = [["[number] times", "three times"], ["[number] months", "12 months"], ["[rate]% a month", "2% a month"], ["[flat or reducing balance]", "flat"], ["[amount]", "KES 1,000"]];
+  const sections = Constitution.buildConstitution(constitutionContext()).map((x) => ({ ...x, text: DEMO_PHRASES.reduce((t, [from, to]) => t.split(from).join(to), x.text).replace(/\[([^\]]+)\]/g, (m, t) => DEMO_FILL[t] || t) }));
+  const adopted = { version: 1, on: addMonths(start, 1) + "-15", hash: Audit.sha256(Constitution.fullText(sections)), approvedBy: M.slice(0, 7).map((x) => x.id), note: "Adopted at the first meeting" };
+  state.constitution = { sections, version: 1, adopted, history: [adopted] };
   save();
 }
 
@@ -676,7 +695,7 @@ function renderFunds(month) {
     return tr;
   }) : [emptyRow(4, "Add members to see the rounds.")]));
 
-  $("welfareStats").replaceChildren(...[[kes(welfareCollected()), "Collected"], [kes(state.payouts.filter((p) => p.kind === "welfare").reduce((t, p) => t + p.amount, 0)), "Paid out"], [kes(welfareBalance()), "Balance"]].map(([big, small]) => {
+  $("welfareStats").replaceChildren(...welfareStatsCards().map(([big, small]) => {
     const d = el("div", undefined, "stat"); d.append(el("b", big), el("span", small)); return d;
   }));
   const sel = $("wMember"), keep = sel.value;
@@ -696,12 +715,7 @@ $("shuffleBtn").onclick = () => {
   for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; }
   save(); render();
 };
-$("welfareForm").onsubmit = (e) => {
-  e.preventDefault();
-  if (Number($("wAmount").value) > welfareBalance() && !confirm("This is more than the welfare balance. Record it anyway?")) return;
-  state.payouts.push({ id: uid(), kind: "welfare", memberId: $("wMember").value, amount: Number($("wAmount").value), reason: $("wReason").value.trim(), date: today() });
-  e.target.reset(); save(); render();
-};
+$("welfareForm").onsubmit = submitWelfare;
 
 // ---------- Switching between your chama and the demo ----------
 function updateModeUI() {
@@ -716,9 +730,11 @@ function updateModeUI() {
 }
 function setMode(next) {
   if (next === mode) return;
+  flushAudit(); // log anything not yet logged before switching
   mode = next;
   localStorage.setItem(MODE_KEY, mode);
   if (mode === "demo" && !localStorage.getItem(KEYS.demo)) { state = blank(); buildDemo(); } else state = loadState();
+  loadAudit();
   $("yeFrom").value = ""; $("yeTo").value = "";
   resetFolds();
   loadYearEndControls();
@@ -730,7 +746,7 @@ $("modeMine").onclick = () => setMode("mine");
 $("modeDemo").onclick = () => setMode("demo");
 $("demoBtn").onclick = () => setMode(mode === "demo" ? "mine" : "demo");
 $("backToMine").onclick = () => setMode("mine");
-$("resetDemo").onclick = () => { if (confirm("Reset the demo group to its starting data?")) { state = blank(); buildDemo(); loadYearEndControls(); fillSettings(); render(); } };
+$("resetDemo").onclick = () => { if (confirm("Reset the demo group to its starting data?")) { state = blank(); buildDemo(); localStorage.removeItem(auditKey()); loadAudit(); loadYearEndControls(); fillSettings(); render(); } };
 $("onboardSetup").onclick = () => (location.hash = "settings");
 $("onboardDemo").onclick = () => setMode("demo");
 
@@ -738,11 +754,15 @@ $("onboardDemo").onclick = () => setMode("demo");
 // Drop ?mode=... from the address so a refresh keeps whichever mode you switch to
 try { history.replaceState(null, "", location.pathname + location.hash); } catch (e) {}
 if (mode === "demo" && !localStorage.getItem(KEYS.demo)) buildDemo();
+loadAudit();
 $("viewMonth").value = thisMonth();
 $("pMonth").value = thisMonth();
 fillSettings();
 Engine.PRESETS.forEach((p) => $("setPreset").append(new Option(p.label, p.id)));
 initDesign();
+initAudit();
+initReconcile();
+initDocuments();
 initUI();
 initMeetings();
 initLedger();

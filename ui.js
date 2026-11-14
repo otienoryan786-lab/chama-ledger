@@ -20,13 +20,19 @@ function cycleTheme() {
 }
 
 // ---------- Toasts, with undo ----------
-function toast(text, undo) {
+function toast(text, undo, action) {
   const t = el("div", undefined, "toast");
   t.append(el("span", text));
   if (undo) { const b = el("button", "Undo", "toastbtn"); b.onclick = () => { undo(); t.remove(); }; t.append(b); }
+  if (action) {
+    const b = action.href ? el("a", action.label, "toastbtn") : el("button", action.label, "toastbtn");
+    if (action.href) { b.href = action.href; b.target = "_blank"; b.rel = "noopener"; } else b.onclick = () => { action.run(); t.remove(); };
+    t.append(b);
+  }
   $("toasts").append(t);
-  setTimeout(() => t.classList.add("out"), undo ? 6000 : 2800);
-  setTimeout(() => t.remove(), undo ? 6400 : 3200);
+  const long = undo || action;
+  setTimeout(() => t.classList.add("out"), long ? 7000 : 2800);
+  setTimeout(() => t.remove(), long ? 7400 : 3200);
 }
 
 // ---------- Figures that count up when they change ----------
