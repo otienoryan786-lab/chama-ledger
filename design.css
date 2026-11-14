@@ -213,3 +213,30 @@ dialog.sheet{margin:auto 0 0;width:100%;max-width:100%;border-radius:22px 22px 0
 @media print{.tabbar,.sheet,.skip{display:none!important}}
 
 .scroll+.hint,table+.hint{margin-top:.9rem}
+
+/* safeguards and documents */
+a.toastbtn{text-decoration:none;border-radius:10px;padding:.3rem .8rem;display:inline-block}
+.rowactions{display:inline-flex;gap:.5rem;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.rowactions .btnlink{padding:.25rem .7rem;font-size:.85rem}
+code{font:.8rem ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--hover);padding:.1rem .4rem;border-radius:6px}
+.costatus{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.cosec{margin-top:1rem}.cosec h3{margin:0 0 .3rem;font-size:1rem}.cosec textarea{width:100%;line-height:1.5}
+.adoptlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.3rem;margin:.4rem 0 1rem}
+.checklist li{align-items:center}
+.trscore{display:flex;align-items:baseline;gap:.8rem;flex-wrap:wrap;margin-bottom:.8rem}
+.trscore b{font:800 3rem "Bricolage Grotesque",system-ui,sans-serif;letter-spacing:-.03em;line-height:1}
+.trscore span{font-weight:500;font-size:1.1rem}
+#stOut h3{margin:1rem 0 .3rem;font-size:1rem}
+#stOut .bad h3{color:var(--bad)}
+#wMsg{margin:.6rem 0 0}
+@media print{
+  body.printing-minutes .printarea table{border-collapse:collapse;width:100%;margin:.5rem 0}
+  body.printing-minutes .printarea th,body.printing-minutes .printarea td{border:1px solid #888;padding:.3rem .5rem;text-align:left;font-size:12px;color:#000;background:none}
+  body.printing-minutes .printarea table.sign td{height:2.2rem}
+  body.printing-minutes .printarea .sigs{margin-top:2.5rem}
+  body.printing-minutes .printarea .docfoot{font-size:11px;color:#444;margin-top:1.5rem}
+}
+
+.cosec textarea{font-family:inherit;font-size:.95rem}
+#fsOut h2{margin-top:1.1rem}
+.hint a{color:var(--ink);text-decoration:underline;text-underline-offset:2px}

@@ -50,6 +50,20 @@ Chama Ledger replaces the notebook with one record that anyone in the group can 
 - **Welfare fund** with monthly collection, a balance and payouts with reasons.
 - **Loans with interest**, either flat or reducing balance, with instalments, repayments and the balance still owed.
 
+**Safeguards**
+- **Audit trail:** every change is logged with the time and who made it, in a chain where each entry carries a fingerprint of the one before. A change, removal or reordering breaks the chain, a deleted payment stays in the trail, and changes made outside the app are found when it opens.
+- **Checkpoints:** a short code (for example `CL-120-A1B2C3D4E5F6`) to send to the group's WhatsApp after each meeting. Anyone can later check that the records before it were not rewritten.
+- **Receipts:** a receipt for every payment, sent to the member on WhatsApp in one tap.
+- **Reconcile:** compare the books with the real money (bank, paybill and cash), keep a history of checks, and compare a pasted M-Pesa statement with the records.
+- **Welfare protection:** a reserve, a claim limit and a limit on claims per member per year. A claim that breaks a rule shows which one and needs a recorded reason.
+
+**Documents**
+- **Constitution** drafted from the group's own rules, edited, adopted (who approved, when, with a fingerprint of the text) and printed for signing.
+- **Registration pack:** member list for signatures, founding minutes and a bank-account resolution. National ID numbers are never stored.
+- **Financial statements** for any period (money received and paid, and the position), and an annual report.
+- **Track record:** a reliability score with six measures, and a printable report that names no members.
+- The reasoning, and what needs a server or a partner, is in [docs/STRATEGY.md](docs/STRATEGY.md).
+
 **Meetings**
 - **Schedule** monthly, annual general or special meetings. A notice with the agenda can be copied for the group's WhatsApp.
 - **Suggested agenda from the books:** contributions and arrears, loans behind schedule, who takes the merry-go-round pot, and expenses waiting for approval. You can add, reorder and remove items.
@@ -175,10 +189,17 @@ chama-ledger/
 ├── tests/
 │   ├── engine.test.js    Node tests for policy, ledger, share-out, approvals and meetings
 │   ├── insights.test.js  Node tests for the health score and insights
+│   ├── audit.test.js     Node tests for the audit chain, checkpoints and tampering
+│   ├── record.test.js    Node tests for the track record and the constitution builder
 │   └── site.test.js      Checks that every file the pages need exists
 ├── package.json  Lets `npm test` run the tests
 ├── .github/workflows/test.yml  Runs the tests on every push
 ├── meetings.js  The Meetings page: agenda, register, minutes, action items, notice and printing
+├── audit.js     Tamper-evident audit chain and checkpoints (pure, tested)
+├── record.js    Track record score (pure, tested)
+├── constitution.js  Builds a constitution draft from the group's rules (pure, tested)
+├── safeguards.js  Audit trail screen, receipts, reconciliation, welfare checks
+├── documents.js   Constitution, registration pack, statements and track record
 ├── insights.js  Group health score and insights (pure, tested)
 ├── ui.js        Theme, quick search, toasts with undo, install and offline status
 ├── trust.js     Group health panel, ledger, explanations, statements and projection
@@ -190,6 +211,7 @@ chama-ledger/
 ├── manifest.webmanifest, sw.js, icons/  Install and offline support
 ├── docs/COMPETITORS.md  Competitor research and where Chama Ledger is different
 ├── docs/DESIGN.md       Design principles, tokens and components
+├── docs/STRATEGY.md     What the strategy ideas became, and what needs a server or partner
 ├── logo.svg     Logo and favicon
 ├── docs/        Screenshots used in this README
 └── README.md
@@ -205,6 +227,7 @@ Plain HTML, CSS and JavaScript, with no frameworks or libraries. The charts are 
 - Expense approvals are local records against member roles, not verified signatures. The app has no sign-in or identity verification yet, so approvals rely on honesty until logins arrive.
 - A statement link contains that member's figures inside the link. Anyone who has the link can read it, so send it only to the member. It is not signed, so it is a convenience copy and not proof.
 - Kenya's Data Protection Act, 2019 applies to anyone who holds members' personal data. Today the data stays on the user's own device. A server-based version will need a privacy notice, member consent and legal advice (see [docs/COMPETITORS.md](docs/COMPETITORS.md)).
+- The audit trail makes changes visible but cannot make them impossible. Someone with access to the device could rebuild it, which is why checkpoint codes should be shared with the group. A server is needed for real immutability.
 - Front-end code can always be read by anyone who opens the app, so anything that must be trusted (logins, who sees which chama, M-Pesa) will live on a server in the next phase, with secrets kept in environment variables.
 
 ## Roadmap
@@ -222,6 +245,11 @@ Plain HTML, CSS and JavaScript, with no frameworks or libraries. The charts are 
 - [x] Competitor research ([docs/COMPETITORS.md](docs/COMPETITORS.md))
 - [x] Meetings: agenda, register, quorum, attendance fines, minutes and action items
 - [x] Design system: the circle, grouped navigation, icons, avatars, badges and a phone tab bar
+- [x] Tamper-evident audit trail with checkpoints, WhatsApp receipts and reconciliation
+- [x] Welfare reserve and claim controls
+- [x] Constitution builder, registration pack, financial statements and track record
+- [ ] Investments tracker with a due-diligence checklist
+- [ ] Kiswahili
 - [ ] Fine cap setting
 - [ ] Loan limits and guarantors
 - [x] Year-end share-out of savings and interest

@@ -25,7 +25,8 @@ function buildSummary() {
   const heldM = state.meetings.filter((m) => m.status === "held").sort((a, b) => b.date.localeCompare(a.date)), last = heldM[0], ls = last ? Engine.meetingStats(state, last) : null;
   const openA = Engine.openActions(state, today());
   const lowAttendance = state.members.filter((m) => { const r = Engine.attendanceRate(state, m.id, 3); return r.held >= 2 && r.rate < 0.5; }).map((m) => m.name);
-  return { meeting: last ? { date: last.date, attended: ls.attended, total: ls.total, quorumMet: ls.quorumMet } : null, actions: { open: openA.length, overdue: openA.filter((a) => a.overdue).length }, lowAttendance, daysSinceMeeting: last ? dayDiff(last.date, today()) : null, memberCount: members.length, monthLabel: month, members, loans, loansOut: b.loans_receivable, savings: b.savings, cash: b.cash, booksBalanced: c.balanced, cashNegative: c.cashNegative, pending: { count: pending.length, amount: pending.reduce((s, e) => s + e.amount, 0) } };
+  const rcs = [...state.reconciliations].sort((a, b) => b.date.localeCompare(a.date)), lastRc = rcs[0];
+  return { welfare: { balance: welfareBalance(), reserve: state.policy.welfare.reserve_min }, reconcile: { hasRecords: state.payments.length > 0, last: lastRc ? { days: dayDiff(lastRc.date, today()), diff: lastRc.diff } : null }, meeting: last ? { date: last.date, attended: ls.attended, total: ls.total, quorumMet: ls.quorumMet } : null, actions: { open: openA.length, overdue: openA.filter((a) => a.overdue).length }, lowAttendance, daysSinceMeeting: last ? dayDiff(last.date, today()) : null, memberCount: members.length, monthLabel: month, members, loans, loansOut: b.loans_receivable, savings: b.savings, cash: b.cash, booksBalanced: c.balanced, cashNegative: c.cashNegative, pending: { count: pending.length, amount: pending.reduce((s, e) => s + e.amount, 0) } };
 }
 
 function renderHealth() {

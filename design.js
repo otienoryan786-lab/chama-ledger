@@ -29,6 +29,9 @@ const ICONS = {
   clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
   heart: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.4A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
   crown: '<path d="M4 18h16M4 18L3 8l5 4 4-7 4 7 5-4-1 10"/>',
+  shield: '<path d="M12 3l8 3v6c0 4.5-3.2 7.8-8 9-4.8-1.2-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  scale: '<path d="M12 4v16M7 20h10"/><path d="M4 8h16"/><path d="M4 8l-2.5 6a2.5 2.5 0 0 0 5 0z"/><path d="M20 8l-2.5 6a2.5 2.5 0 0 0 5 0z"/>',
+  file: '<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/>',
   back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
 };
 function spriteMarkup() {
@@ -151,5 +154,5 @@ function initDesign() {
   themeButtonUI(localStorage.getItem(THEME_KEY) || "auto");
   document.querySelectorAll("#tabbar button").forEach((b) => { b.onclick = () => (b.dataset.tab === "more" ? openMore() : (location.hash = b.dataset.tab)); });
   $("moreSheet").addEventListener("click", (e) => { if (e.target === $("moreSheet")) $("moreSheet").close(); });
-  ["rows", "history", "loanRows", "exRows", "mtRows", "lgRows"].forEach((id) => { const t = $(id) && $(id).closest("table"); if (t) t.classList.add("stack"); });
+  ["rows", "history", "loanRows", "exRows", "mtRows", "lgRows", "auRows", "rcRows", "coHistory"].forEach((id) => { const t = $(id) && $(id).closest("table"); if (t) t.classList.add("stack"); });
 }

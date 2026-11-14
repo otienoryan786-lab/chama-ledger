@@ -20,3 +20,7 @@ Please do not open a public issue for a security problem. Use the **Report a vul
 ## Statement links
 
 A member statement link carries the member's figures inside the link (after the `#`), so nothing is sent to a server when it is opened. Anyone who holds the link can read it. Send it only to the member concerned, and remember it is an unsigned copy made on the date shown.
+
+## Audit trail and checkpoints
+
+The audit trail is stored on the same device as the records. It is tamper-evident, not tamper-proof: each entry carries a fingerprint of the one before, so a change breaks the chain, and a checkpoint code held by the group proves earlier history was not rewritten. Share a checkpoint after every meeting. Printed documents never include national ID numbers, because the app does not store them.
